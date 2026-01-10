@@ -1,0 +1,94 @@
+/**
+ * Professional Typography System
+ * Global-first design with consistent type scale
+ */
+
+:root {
+    /* Professional Typography Scale */
+    --font-xs: 0.75rem;      /* 12px - Captions, labels */
+    --font-sm: 0.875rem;     /* 14px - Body small, secondary text */
+    --font-base: 1rem;       /* 16px - Base body text */
+    --font-lg: 1.125rem;     /* 18px - Emphasized text */
+    --font-xl: 1.25rem;      /* 20px - Small headings */
+    --font-2xl: 1.5rem;      /* 24px - Section headings */
+    --font-3xl: 1.875rem;    /* 30px - Page headings */
+    --font-4xl: 2.25rem;     /* 36px - Hero headings */
+    --font-5xl: 3rem;        /* 48px - Display headings */
+
+    /* Line Heights for Readability */
+    --leading-none: 1;
+    --leading-tight: 1.25;
+    --leading-snug: 1.375;
+    --leading-normal: 1.5;
+    --leading-relaxed: 1.625;
+    --leading-loose: 2;
+
+    /* Font Weights */
+    --font-light: 300;
+    --font-normal: 400;
+    --font-medium: 500;
+    --font-semibold: 600;
+    --font-bold: 700;
+    --font-extrabold: 800;
+
+    /* Letter Spacing */
+    --tracking-tighter: -0.05em;
+    --tracking-tight: -0.025em;
+    --tracking-normal: 0;
+    --tracking-wide: 0.025em;
+    --tracking-wider: 0.05em;
+    --tracking-widest: 0.1em;
+}
+
+/* Typography Utilities */
+.text-xs { font-size: var(--font-xs); }
+.text-sm { font-size: var(--font-sm); }
+.text-base { font-size: var(--font-base); }
+.text-lg { font-size: var(--font-lg); }
+.text-xl { font-size: var(--font-xl); }
+.text-2xl { font-size: var(--font-2xl); }
+.text-3xl { font-size: var(--font-3xl); }
+.text-4xl { font-size: var(--font-4xl); }
+.text-5xl { font-size: var(--font-5xl); }
+
+/* Leading Utilities */
+.leading-none { line-height: var(--leading-none); }
+.leading-tight { line-height: var(--leading-tight); }
+.leading-snug { line-height: var(--leading-snug); }
+.leading-normal { line-height: var(--leading-normal); }
+.leading-relaxed { line-height: var(--leading-relaxed); }
+.leading-loose { line-height: var(--leading-loose); }
+
+/* Font Weight Utilities */
+.font-light { font-weight: var(--font-light); }
+.font-normal { font-weight: var(--font-normal); }
+.font-medium { font-weight: var(--font-medium); }
+.font-semibold { font-weight: var(--font-semibold); }
+.font-bold { font-weight: var(--font-bold); }
+.font-extrabold { font-weight: var(--font-extrabold); }
+
+/* Tracking Utilities */
+.tracking-tighter { letter-spacing: var(--tracking-tighter); }
+.tracking-tight { letter-spacing: var(--tracking-tight); }
+.tracking-normal { letter-spacing: var(--tracking-normal); }
+.tracking-wide { letter-spacing: var(--tracking-wide); }
+.tracking-wider { letter-spacing: var(--tracking-wider); }
+.tracking-widest { letter-spacing: var(--tracking-widest); }
+
+/* Responsive Typography */
+@media (max-width: 640px) {
+    :root {
+        --font-3xl: 1.5rem;     /* 24px on mobile */
+        --font-4xl: 1.875rem;    /* 30px on mobile */
+        --font-5xl: 2.25rem;     /* 36px on mobile */
+    }
+}
+
+/* Print Typography */
+@media print {
+    body {
+        font-size: var(--font-base);
+        line-height: var(--leading-relaxed);
+        color: #000;
+    }
+}

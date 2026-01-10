@@ -1414,6 +1414,63 @@
             if (fileInput) fileInput.click();
         };
 
+        window.handleFileUpload = function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                window.capturedImageData = e.target.result;
+                const previewImage = document.getElementById('previewImage');
+                const cameraView = document.getElementById('cameraView');
+                const previewView = document.getElementById('previewView');
+
+                if (previewImage) previewImage.src = window.capturedImageData;
+                if (cameraView) cameraView.classList.add('hidden');
+                if (previewView) previewView.classList.remove('hidden');
+
+                window.stopCamera();
+            };
+            reader.readAsDataURL(file);
+        };
+
+        window.retakePhoto = function() {
+            window.capturedImageData = null;
+            const cameraView = document.getElementById('cameraView');
+            const previewView = document.getElementById('previewView');
+
+            if (previewView) previewView.classList.add('hidden');
+            if (cameraView) cameraView.classList.remove('hidden');
+
+            window.startCamera();
+        };
+
+        window.closeScannerModal = function() {
+            window.stopCamera();
+
+            const scannerModal = document.getElementById('scannerModal');
+            const cameraView = document.getElementById('cameraView');
+            const previewView = document.getElementById('previewView');
+            const processingView = document.getElementById('processingView');
+            const resultsView = document.getElementById('resultsView');
+
+            if (scannerModal) {
+                scannerModal.classList.add('hidden');
+                scannerModal.classList.remove('flex');
+            }
+
+            // Reset states
+            window.capturedImageData = null;
+            window.extractedInfo = null;
+            window.currentScanPersonId = null;
+
+            // Reset views
+            if (cameraView) cameraView.classList.remove('hidden');
+            if (previewView) previewView.classList.add('hidden');
+            if (processingView) processingView.classList.add('hidden');
+            if (resultsView) resultsView.classList.add('hidden');
+        };
+
         // Load existing KYC/UBO data from API
         window.loadExistingKycUboData = async function() {
             const token = localStorage.getItem('token');
@@ -1580,7 +1637,7 @@
             const submitBtn = document.getElementById('kycSubmitBtn');
 
             // Load KYC/UBO data when form is ready
-            loadExistingKycUboData();
+            window.loadExistingKycUboData();
 
             // Validation function for all sections
             function validateAllSections() {

@@ -3,6 +3,7 @@ from jose import jwt, JWTError
 from datetime import datetime, timedelta
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
+from typing import List
 
 from app.core.config import SECRET_KEY, ACCESS_TOKEN_EXPIRE_MINUTES, ALGORITHM
 
@@ -53,11 +54,11 @@ def get_current_admin_user(token: str = Depends(oauth2_scheme)) -> dict:
     Get current user and ensure they have admin role
     """
     payload = get_current_user(token)
-    roles = payload.get("roles", [])
-    
+    roles = get_user_roles(payload)
+
     if "ADMIN" not in roles:
         raise HTTPException(status_code=403, detail="Admin access required")
-    
+
     return payload
 
 
@@ -66,12 +67,32 @@ def get_current_user_from_db(db, token: str = Depends(oauth2_scheme)):
     Get current user object from database
     """
     from app.models.user import User
-    
+
     payload = get_current_user(token)
     user_id = int(payload["sub"])
-    
+
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
+
     return user
+
+
+# =====================
+# ROLE HELPERS
+# =====================
+
+def get_user_roles(user: dict) -> List[str]:
+    """
+    Extract roles from user dict in a consistent manner.
+    Handles both list and string formats, with fallback to role field.
+    """
+    roles = user.get("roles")
+    if isinstance(roles, list):
+        return [r for r in roles if r]
+    if isinstance(roles, str):
+        return [r for r in roles.split(',') if r.strip()]
+    # Fallback to legacy role field
+    if user.get("role"):
+        return [user.get("role")]
+    return []

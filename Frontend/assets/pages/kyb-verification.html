@@ -6,9 +6,20 @@
     <link href="../css/tailwind.generated.css" rel="stylesheet">
     <link href="../css/style.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css">
+    <script src="../js/i18n.js"></script>
     <title>KYB Verification - Bank</title>
 </head>
 <body class="bg-gray-50">
+
+    <!-- Language Switcher (Top Right) -->
+    <div class="fixed top-4 right-4 z-50 flex items-center space-x-2 bg-white rounded-lg shadow-md p-1">
+        <button class="lang-btn px-3 py-1.5 text-sm font-medium rounded transition-all duration-200" data-lang="vi">
+            🇻🇳 VI
+        </button>
+        <button class="lang-btn px-3 py-1.5 text-sm font-medium rounded transition-all duration-200" data-lang="en">
+            🇬🇧 EN
+        </button>
+    </div>
 
     <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div class="max-w-4xl w-full bg-white rounded-lg shadow-lg p-8">
@@ -298,7 +309,7 @@
 
         // Check authentication
         if (!token) {
-            window.location.href = '/assets/pages/login.html';
+            window.location.href = '/pages/login.html';
         }
 
         // Check KYB status on page load
@@ -399,7 +410,7 @@
         // Logout function
         function logout() {
             localStorage.removeItem('token');
-            window.location.href = '/assets/pages/login.html';
+            window.location.href = '/pages/login.html';
         }
 
         // Check status on page load

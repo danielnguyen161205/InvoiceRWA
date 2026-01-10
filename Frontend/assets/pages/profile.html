@@ -8,6 +8,7 @@
     <link href="../css/tailwind.generated.css" rel="stylesheet">
     <link href="../css/style.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css">
+    <script src="../js/i18n.js"></script>
     <title>My Profile - Invoice RWA</title>
     <style>
         .status-badge.available {
@@ -32,11 +33,20 @@
                     <svg class="h-6 w-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                     </svg>
-                    Back to Dashboard
+                    <span data-i18n="nav.backToDashboard">Back to Dashboard</span>
                 </a>
             </div>
-            <h1 class="text-2xl font-bold text-gray-800">My Profile</h1>
-            <div class="w-32"></div> <!-- Spacer for alignment -->
+            <h1 class="text-2xl font-bold text-gray-800" data-i18n="profile.title">My Profile</h1>
+            
+            <!-- Language Switcher -->
+            <div class="flex items-center space-x-2 bg-white rounded-lg shadow-sm p-1">
+                <button class="lang-btn px-3 py-1.5 text-sm font-medium rounded transition-all duration-200" data-lang="vi">
+                    🇻🇳 VI
+                </button>
+                <button class="lang-btn px-3 py-1.5 text-sm font-medium rounded transition-all duration-200" data-lang="en">
+                    🇬🇧 EN
+                </button>
+            </div>
         </nav>
 
         <div class="max-w-4xl mx-auto">
@@ -67,7 +77,7 @@
                                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
                                 </svg>
-                                <span>Logout</span>
+                                <span data-i18n="common.logout">Logout</span>
                             </button>
                         </div>
                     </div>
@@ -77,13 +87,13 @@
                 <div class="border-b border-gray-200">
                     <nav class="flex space-x-8 px-8" aria-label="Tabs">
                         <button id="accountTab" onclick="switchTab('account')" class="border-b-2 border-indigo-500 py-4 px-1 text-sm font-medium text-indigo-600">
-                            Account Information
+                            <span data-i18n="profile.account">Account Information</span>
                         </button>
                         <button id="kycTab" onclick="switchTab('kyc')" class="border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300">
-                            KYC/KYB Verification
+                            <span data-i18n="profile.kycTab">KYC/KYB Verification</span>
                         </button>
                         <button id="securityTab" onclick="switchTab('security')" class="border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300">
-                            Security
+                            <span data-i18n="profile.security">Security</span>
                         </button>
                     </nav>
                 </div>
@@ -95,25 +105,25 @@
                     <div id="accountContent" class="space-y-6">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">Email Address</label>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2" data-i18n="auth.email">Email Address</label>
                                 <div class="flex items-center space-x-2">
                                     <input id="emailInput" type="email" readonly class="flex-1 px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-700">
-                                    <span class="px-3 py-2 bg-green-100 text-green-700 rounded-lg text-xs font-medium">Verified</span>
+                                    <span class="px-3 py-2 bg-green-100 text-green-700 rounded-lg text-xs font-medium" data-i18n="common.verified">Verified</span>
                                 </div>
                             </div>
                             
                             <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">User ID</label>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2" data-i18n="profile.userId">User ID</label>
                                 <input id="userIdInput" type="text" readonly class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-700">
                             </div>
                             
                             <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">Account Type</label>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2" data-i18n="profile.role">Account Type</label>
                                 <input id="roleInput" type="text" readonly class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-700">
                             </div>
                             
                             <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">Member Since</label>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2" data-i18n="profile.memberSince">Member Since</label>
                                 <input id="memberSinceInput" type="text" readonly class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-700">
                             </div>
                         </div>
@@ -127,7 +137,7 @@
                                             <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"></path>
                                             <path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd"></path>
                                         </svg>
-                                        Blockchain Wallet
+                                        <span data-i18n="profile.wallet">Blockchain Wallet</span>
                                     </h4>
                                     <p class="text-sm text-gray-600 mt-1">Connect your wallet to mint NFTs and manage blockchain transactions</p>
                                 </div>
@@ -147,7 +157,7 @@
                                         <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"></path>
                                         <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0015 7h-1z"></path>
                                     </svg>
-                                    Connect MetaMask Wallet
+                                    <span data-i18n="profile.connectWallet">Connect MetaMask Wallet</span>
                                 </button>
                             </div>
 
@@ -158,10 +168,10 @@
                                             <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
                                             </svg>
-                                            <span class="text-sm font-semibold">Wallet Connected</span>
+                                            <span class="text-sm font-semibold" data-i18n="profile.walletConnected">Wallet Connected</span>
                                         </div>
                                         <button onclick="disconnectWallet()" class="text-red-600 hover:text-red-700 text-sm font-medium">
-                                            Disconnect
+                                            <span data-i18n="profile.disconnectWallet">Disconnect</span>
                                         </button>
                                     </div>
                                     <div class="mt-3 flex items-center justify-between">
@@ -173,7 +183,7 @@
                                             <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
                                             </svg>
-                                            Copy
+                                            <span data-i18n="profile.copyAddress">Copy</span>
                                         </button>
                                     </div>
                                 </div>
@@ -219,7 +229,7 @@
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div class="md:col-span-2">
                                             <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                                <i class="ri-briefcase-line"></i> Tên pháp lý <span class="text-red-600">*</span>
+                                                <i class="ri-briefcase-line"></i> <span data-i18n="kyc.legalName">Tên pháp lý</span> <span class="text-red-600">*</span>
                                             </label>
                                             <input id="kyc_legal_name" type="text" required 
                                                 placeholder="VD: CÔNG TY TNHH ABC"
@@ -228,7 +238,7 @@
                                         
                                         <div>
                                             <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                                <i class="ri-global-line"></i> Tên tiếng Anh (nếu có)
+                                                <i class="ri-global-line"></i> <span data-i18n="kyc.foreignName">Tên tiếng Anh (nếu có)</span>
                                             </label>
                                             <input id="kyc_foreign_name" type="text" 
                                                 placeholder="VD: ABC Company Limited"
@@ -237,7 +247,7 @@
                                         
                                         <div>
                                             <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                                <i class="ri-store-line"></i> Tên viết tắt
+                                                <i class="ri-store-line"></i> <span data-i18n="kyc.tradeName">Tên viết tắt</span>
                                             </label>
                                             <input id="kyc_trade_name" type="text" 
                                                 placeholder="VD: ABC Shop"
@@ -246,7 +256,7 @@
                                         
                                         <div>
                                             <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                                <i class="ri-bank-card-line"></i> Mã số thuế <span class="text-red-600">*</span>
+                                                <i class="ri-bank-card-line"></i> <span data-i18n="kyc.taxId">Mã số thuế</span> <span class="text-red-600">*</span>
                                             </label>
                                             <input id="kyc_tax_id" type="text" required 
                                                 placeholder="VD: 0123456789"
@@ -255,7 +265,7 @@
                                         
                                         <div>
                                             <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                                <i class="ri-file-list-line"></i> Số ĐKKD
+                                                <i class="ri-file-list-line"></i> <span data-i18n="kyc.registrationNumber">Số ĐKKD</span>
                                             </label>
                                             <input id="kyc_registration_number" type="text" 
                                                 placeholder="VD: 0123456789"
@@ -264,27 +274,27 @@
                                         
                                         <div>
                                             <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                                <i class="ri-organization-chart"></i> Loại hình pháp lý
+                                                <i class="ri-organization-chart"></i> <span data-i18n="kyc.legalForm">Loại hình pháp lý</span>
                                             </label>
                                             <select id="kyc_legal_form" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
-                                                <option value="">Chọn loại hình...</option>
-                                                <option value="TNHH">TNHH - Trách nhiệm hữu hạn</option>
-                                                <option value="CP">Cổ phần</option>
-                                                <option value="DNTN">DNTN - Doanh nghiệp tư nhân</option>
-                                                <option value="HTX">Hợp tác xã</option>
-                                                <option value="OTHER">Khác</option>
+                                                <option value="" data-i18n="kyc.selectLegalForm">Chọn loại hình...</option>
+                                                <option value="TNHH" data-i18n="kyc.legalFormLLC">TNHH - Trách nhiệm hữu hạn</option>
+                                                <option value="CP" data-i18n="kyc.legalFormJSC">Cổ phần</option>
+                                                <option value="DNTN" data-i18n="kyc.legalFormPrivate">DNTN - Doanh nghiệp tư nhân</option>
+                                                <option value="HTX" data-i18n="kyc.legalFormCoop">Hợp tác xã</option>
+                                                <option value="OTHER" data-i18n="kyc.legalFormOther">Khác</option>
                                             </select>
                                         </div>
                                         
                                         <div>
                                             <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                                <i class="ri-checkbox-circle-line"></i> Trạng thái hoạt động
+                                                <i class="ri-checkbox-circle-line"></i> <span data-i18n="kyc.operationStatus">Trạng thái hoạt động</span>
                                             </label>
                                             <select id="kyc_operation_status" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
-                                                <option value="">Chọn trạng thái...</option>
-                                                <option value="ACTIVE">Đang hoạt động</option>
-                                                <option value="SUSPENDED">Tạm ngưng</option>
-                                                <option value="DISSOLVED">Đã giải thể</option>
+                                                <option value="" data-i18n="kyc.selectOperationStatus">Chọn trạng thái...</option>
+                                                <option value="ACTIVE" data-i18n="kyc.statusActive">Đang hoạt động</option>
+                                                <option value="SUSPENDED" data-i18n="kyc.statusSuspended">Tạm ngưng</option>
+                                                <option value="DISSOLVED" data-i18n="kyc.statusDissolved">Đã giải thể</option>
                                             </select>
                                         </div>
                                         
@@ -1013,7 +1023,7 @@
         }
 
         // Initialize KYC/KYB Form
-        function initializeKycForm() {
+        async function initializeKycForm() {
             const token = localStorage.getItem('token');
             const payload = JSON.parse(atob(token.split('.')[1]));
             const kycVerified = payload.kyc_verified || false;
@@ -1028,6 +1038,23 @@
             if (!kycStatusAlert || !kycFormSection) {
                 console.log('KYC form elements not found on this page');
                 return;
+            }
+
+            // Fetch organization data to get rejection_reason if status is REJECTED
+            let rejectionReason = 'Your application was rejected. Please review your information and resubmit.';
+            if (orgStatus === 'REJECTED') {
+                try {
+                    const orgRes = await fetch(`${API_URL}/api/kyc/organizations/me`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (orgRes.ok) {
+                        const orgData = await orgRes.json();
+                        rejectionReason = orgData.rejection_reason || rejectionReason;
+                        console.log('Loaded rejection reason:', rejectionReason);
+                    }
+                } catch (error) {
+                    console.error('Error loading organization data:', error);
+                }
             }
             
             // All roles (SME, BUYER, BANK) use the same KYC/KYB form
@@ -1062,7 +1089,25 @@
                 kycFormSection.style.display = 'none';
             } else if (orgStatus === 'REJECTED') {
                 kycStatusAlert.className = 'rounded-lg p-4 bg-red-50 border border-red-200';
-                kycStatusAlert.innerHTML = '<div class="flex items-center"><svg class="h-5 w-5 text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg><span class="text-red-800 font-medium">Your application was rejected. Please contact support for assistance.</span></div>';
+                kycStatusAlert.innerHTML = `
+                    <div>
+                        <div class="flex items-center mb-2">
+                            <svg class="h-5 w-5 text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                            </svg>
+                            <span class="text-red-800 font-bold">KYB/KYC Application Rejected</span>
+                        </div>
+                        <div class="ml-7 mb-3">
+                            <p class="text-red-700 font-medium mb-2">Admin Comment:</p>
+                            <p class="text-red-600 bg-white p-3 rounded border border-red-200">${rejectionReason}</p>
+                        </div>
+                        <div class="ml-7">
+                            <button onclick="handleResubmitKYB()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium">
+                                <i class="ri-refresh-line mr-1"></i> Resubmit KYB/KYC Application
+                            </button>
+                        </div>
+                    </div>
+                `;
                 kycFormSection.style.display = 'none';
             } else {
                 // Not yet submitted - show form
@@ -1327,31 +1372,32 @@
         let connectedWallet = null;
 
         async function checkWalletConnection() {
-            // Check if wallet was previously connected (from localStorage)
-            const savedWallet = localStorage.getItem('connectedWallet');
-            if (savedWallet) {
-                connectedWallet = savedWallet;
-                updateWalletUI(savedWallet);
-                return;
-            }
-
-            // Check if MetaMask is installed
-            if (typeof window.ethereum === 'undefined') {
-                console.log('MetaMask not detected');
-                return;
-            }
-
-            // Check if already connected to MetaMask
+            // First, get wallet address from backend (organization)
+            const token = localStorage.getItem('token');
+            if (!token) return;
+            
             try {
-                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-                if (accounts && accounts.length > 0) {
-                    connectedWallet = accounts[0];
-                    localStorage.setItem('connectedWallet', connectedWallet);
-                    updateWalletUI(connectedWallet);
+                // Load organization data to get wallet_address
+                const res = await fetch('http://127.0.0.1:8000/api/kyc/organizations/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (res.ok) {
+                    const org = await res.json();
+                    if (org.wallet_address) {
+                        // Organization has a wallet in database
+                        connectedWallet = org.wallet_address;
+                        updateWalletUI(connectedWallet);
+                        return;
+                    }
                 }
             } catch (error) {
-                console.error('Error checking wallet connection:', error);
+                console.log('No organization wallet found:', error);
             }
+            
+            // No wallet in database - show disconnected state
+            document.getElementById('walletNotConnected').classList.remove('hidden');
+            document.getElementById('walletConnected').classList.add('hidden');
         }
 
         async function connectWallet() {
@@ -1364,18 +1410,16 @@
             try {
                 // Request account access
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                connectedWallet = accounts[0];
+                const walletAddress = accounts[0];
                 
-                // Save to localStorage
-                localStorage.setItem('connectedWallet', connectedWallet);
+                // Save to backend (organization)
+                await saveWalletToOrganization(walletAddress);
                 
-                // Try to save to backend (if organization exists)
-                await saveWalletToOrganization(connectedWallet);
+                // Update state
+                connectedWallet = walletAddress;
+                updateWalletUI(walletAddress);
                 
-                // Update UI
-                updateWalletUI(connectedWallet);
-                
-                alert('✅ Wallet connected successfully!\n\n' + connectedWallet);
+                alert('✅ Wallet connected successfully!\n\n' + walletAddress);
             } catch (error) {
                 console.error('Error connecting wallet:', error);
                 if (error.code === 4001) {
@@ -1388,11 +1432,13 @@
 
         async function saveWalletToOrganization(walletAddress) {
             const token = localStorage.getItem('token');
-            if (!token) return;
+            if (!token) {
+                throw new Error('Not authenticated');
+            }
 
             try {
-                const response = await fetch('http://127.0.0.1:8000/api/kyc/organizations/me/wallet', {
-                    method: 'PUT',
+                const response = await fetch('http://127.0.0.1:8000/api/kyc/organization/wallet', {
+                    method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
@@ -1400,53 +1446,50 @@
                     body: JSON.stringify({ wallet_address: walletAddress })
                 });
 
-                if (response.status === 404) {
-                    // Organization doesn't exist yet - that's okay, wallet is saved in localStorage
-                    console.log('ℹ️ Organization not found. Wallet saved locally. Will sync when you complete KYC.');
-                    return;
-                }
-
                 if (!response.ok) {
-                    throw new Error('Failed to save wallet address');
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Failed to save wallet address');
                 }
 
                 console.log('✅ Wallet address saved to organization');
             } catch (error) {
                 console.error('Error saving wallet:', error);
-                // Don't show alert - wallet is still connected locally
+                throw error;
             }
         }
 
         async function disconnectWallet() {
-            if (!confirm('Disconnect wallet?\n\nYou can reconnect anytime from this page.')) {
+            if (!confirm('Ngắt kết nối ví?\n\nBạn có thể kết nối lại bất cứ lúc nào.')) {
                 return;
             }
 
-            connectedWallet = null;
+            // Remove from backend
+            const token = localStorage.getItem('token');
+            if (token) {
+                try {
+                    const response = await fetch('http://127.0.0.1:8000/api/kyc/organization/wallet', {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('Failed to disconnect wallet');
+                    }
+                } catch (error) {
+                    console.error('Error removing wallet:', error);
+                    alert('❌ Lỗi khi ngắt kết nối:\n\n' + error.message);
+                    return;
+                }
+            }
             
-            // Remove from localStorage
-            localStorage.removeItem('connectedWallet');
+            // Update state
+            connectedWallet = null;
             
             // Update UI
             document.getElementById('walletNotConnected').classList.remove('hidden');
             document.getElementById('walletConnected').classList.add('hidden');
             
-            // Remove from backend (if organization exists)
-            const token = localStorage.getItem('token');
-            if (token) {
-                try {
-                    await fetch('http://127.0.0.1:8000/api/kyc/organizations/me/wallet', {
-                        method: 'DELETE',
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
-                    });
-                } catch (error) {
-                    console.error('Error removing wallet:', error);
-                }
-            }
-            
-            alert('✅ Wallet disconnected');
+            alert('✅ Đã ngắt kết nối ví');
         }
 
         function updateWalletUI(address) {
@@ -1480,19 +1523,23 @@
             });
         }
 
-        // Listen for account changes
+        // Listen for account changes in MetaMask
         if (typeof window.ethereum !== 'undefined') {
-            window.ethereum.on('accountsChanged', (accounts) => {
+            window.ethereum.on('accountsChanged', async (accounts) => {
                 if (accounts.length === 0) {
-                    // User disconnected
-                    connectedWallet = null;
-                    document.getElementById('walletNotConnected').classList.remove('hidden');
-                    document.getElementById('walletConnected').classList.add('hidden');
-                } else if (accounts[0] !== connectedWallet) {
-                    // User switched accounts
-                    connectedWallet = accounts[0];
-                    updateWalletUI(connectedWallet);
-                    saveWalletToOrganization(connectedWallet);
+                    // User disconnected from MetaMask
+                    console.log('MetaMask disconnected');
+                } else {
+                    // User switched accounts in MetaMask
+                    const newAccount = accounts[0];
+                    
+                    // Check if this new account is different from what's saved
+                    if (connectedWallet && newAccount.toLowerCase() !== connectedWallet.toLowerCase()) {
+                        alert(`⚠️ Phát hiện ví MetaMask đã thay đổi!\n\n` +
+                              `Ví cũ: ${connectedWallet}\n` +
+                              `Ví mới: ${newAccount}\n\n` +
+                              `Vui lòng ngắt kết nối và kết nối lại với ví mới.`);
+                    }
                 }
             });
         }
@@ -2073,6 +2120,60 @@
                 info.classList.remove('hidden');
             } else {
                 info.classList.add('hidden');
+            }
+        }
+
+        // Handle resubmit KYB after rejection
+        async function handleResubmitKYB() {
+            if (!confirm('Bạn muốn nộp lại hồ sơ KYB/KYC? Vui lòng đảm bảo bạn đã sửa các thông tin theo yêu cầu của admin.')) {
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('token');
+                
+                // Get current organization
+                const orgRes = await fetch(`${API_URL}/api/kyc/organizations/me`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!orgRes.ok) throw new Error('Cannot load organization');
+                
+                const org = await orgRes.json();
+                
+                // Reset organization status to PENDING for resubmission
+                const resetRes = await fetch(`${API_URL}/api/kyc/organizations/${org.id}/resubmit`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!resetRes.ok) {
+                    const error = await resetRes.json();
+                    throw new Error(error.detail || 'Failed to resubmit');
+                }
+                
+                // Success - show form and update status
+                alert('✅ Trạng thái đã được reset! Vui lòng cập nhật thông tin KYB/KYC và submit lại.');
+                
+                // Show the form
+                const kycFormSection = document.getElementById('kycFormSection');
+                const kycStatusAlert = document.getElementById('kycStatusAlert');
+                
+                if (kycFormSection) kycFormSection.style.display = 'block';
+                if (kycStatusAlert) {
+                    kycStatusAlert.className = 'rounded-lg p-4 bg-blue-50 border border-blue-200';
+                    kycStatusAlert.innerHTML = '<div class="flex items-center"><svg class="h-5 w-5 text-blue-400 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg><span class="text-blue-800 font-medium">Vui lòng cập nhật thông tin và submit lại để được xét duyệt.</span></div>';
+                }
+                
+                // Reload existing data
+                loadExistingKycUboData();
+                
+            } catch (error) {
+                console.error('Error resubmitting:', error);
+                alert('❌ Lỗi: ' + error.message);
             }
         }
     </script>

@@ -13,10 +13,21 @@
     <!--=============== CSS ===============-->
     <link rel="stylesheet" href="../css/tailwind.generated.css">
     <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/i18n.js"></script>
 
-    <title>Create account - Invoice RWA</title>
+    <title>Register - Invoice RWA</title>
   </head>
   <body>
+    <!-- Language Switcher (Top Right) -->
+    <div class="fixed top-4 right-4 z-50 flex items-center space-x-2 bg-white rounded-lg shadow-md p-1">
+      <button class="lang-btn px-3 py-1.5 text-sm font-medium rounded transition-all duration-200" data-lang="vi">
+         🇻🇳 VI
+      </button>
+      <button class="lang-btn px-3 py-1.5 text-sm font-medium rounded transition-all duration-200" data-lang="en">
+         🇬🇧 EN
+      </button>
+    </div>
+
     <div class="login container grid">
       <div class="login__container grid">
         <div class="login__swiper swiper">
@@ -56,46 +67,46 @@
    
         <div class="login__area grid">
           <div class="login__data">
-              <a href="./login.html" class="login__back"><i class="ri-arrow-left-line"></i> Back to login</a>
-              <h1 class="login__title">Create account 👋</h1>
+              <a href="./login.html" class="login__back"><i class="ri-arrow-left-line"></i> <span data-i18n="common.back">Back to login</span></a>
+              <h1 class="login__title" data-i18n="auth.createAccount">Create account 👋</h1>
 
-              <p class="login__description">Please enter your details.</p>
+              <p class="login__description" data-i18n="auth.pleaseEnterDetails">Please enter your details.</p>
             </div>
    
    
           <form id="registerForm" class="login__form">
             <div class="login__content grid">
               <div class="login__box">
-                <input id="name" type="text" name="name" placeholder="Full name" class="login__input">
+                <input id="name" type="text" name="name" data-i18n-attr="placeholder:auth.fullName" placeholder="Full name" class="login__input">
                 <i class="ri-user-line"></i>
               </div>
 
               <div class="login__box">
-                <input id="email" type="email" name="email" placeholder="Email" class="login__input">
+                <input id="email" type="email" name="email" data-i18n-attr="placeholder:auth.email" placeholder="Email" class="login__input">
                 <i class="ri-mail-line"></i>
               </div>
      
               <div class="login__box">
-                <input id="loginPass" type="password" name="password" placeholder="Password" class="login__input">
+                <input id="loginPass" type="password" name="password" data-i18n-attr="placeholder:auth.password" placeholder="Password" class="login__input">
                 <i class="ri-eye-line login__eye" id="loginEye"></i>
               </div>
 
               <div class="login__box">
-                <input id="confirmPass" type="password" name="confirm_password" placeholder="Confirm password" class="login__input">
+                <input id="confirmPass" type="password" name="confirm_password" data-i18n-attr="placeholder:auth.confirmPassword" placeholder="Confirm password" class="login__input">
                 <i class="ri-lock-2-line"></i>
               </div>
 
               <div class="login__box">
                 <select id="userRole" name="role" class="login__input" style="padding-right: 2.5rem;">
-                  <option value="">Select your role</option>
-                  <option value="SME">SME or Buyer (Business User)</option>
-                  <option value="BANK">Bank (Financial Institution)</option>
+                  <option value="" data-i18n="auth.selectRole">Select your role</option>
+                  <option value="SME" data-i18n="auth.smeOrBuyer">SME or Buyer (Business User)</option>
+                  <option value="BANK" data-i18n="auth.bank">Bank (Financial Institution)</option>
                 </select>
                 <i class="ri-shield-user-line"></i>
               </div>
             </div>
 
-            <button id="registerBtn" type="submit" class="login__button">Register</button>
+            <button id="registerBtn" type="submit" class="login__button" data-i18n="auth.register">Register</button>
           </form>
                
         </div>

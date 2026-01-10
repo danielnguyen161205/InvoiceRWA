@@ -5,7 +5,7 @@ Blockchain API endpoints for invoice tokenization
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, date
 
 from app.db.session import get_db
 from app.models.invoice import Invoice
@@ -23,8 +23,18 @@ async def mint_invoice_nft(
 ):
     """
     Mint NFT for an invoice
-    Only invoice owner (SME) or admin can mint
+    Only ADMIN can mint NFT
+    Invoice must be in SUBMITTED or APPROVED status
+    NFT is initially owned by SME, will transfer to Bank when purchased
     """
+    # Check permissions - ONLY ADMIN can mint
+    user_roles = current_user.get("roles") or ([current_user.get("role")] if current_user.get("role") else [])
+    if "ADMIN" not in user_roles:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only ADMIN can mint NFT"
+        )
+    
     # Get invoice
     invoice = db.query(Invoice).filter(
         Invoice.id == invoice_id
@@ -36,18 +46,18 @@ async def mint_invoice_nft(
             detail="Invoice not found"
         )
     
+    # Check invoice status - must be SUBMITTED or APPROVED
+    if invoice.status not in ["SUBMITTED", "APPROVED"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Can only mint NFT for SUBMITTED or APPROVED invoices. Current status: {invoice.status}"
+        )
+    
     # Check if already minted
     if invoice.token_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invoice already tokenized with token ID: {invoice.token_id}"
-        )
-    
-    # Check permissions (must be invoice owner or admin)
-    if invoice.sme_org_id != current_user.organization_id and "ADMIN" not in current_user.roles:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only invoice owner or admin can mint NFT"
         )
     
     # Get seller and buyer organizations
@@ -59,10 +69,26 @@ async def mint_invoice_nft(
         Organization.id == invoice.buyer_org_id
     ).first()
     
-    if not seller_org or not buyer_org:
+    # Provide specific error messages
+    if not invoice.sme_org_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Seller or buyer organization not found"
+            detail="Invoice does not have a seller organization (sme_org_id is missing)"
+        )
+    if not invoice.buyer_org_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invoice does not have a buyer organization (buyer_org_id is missing)"
+        )
+    if not seller_org:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Seller organization (ID: {invoice.sme_org_id}) not found in database"
+        )
+    if not buyer_org:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Buyer organization (ID: {invoice.buyer_org_id}) not found in database"
         )
     
     # Check if organizations have wallet addresses
@@ -83,6 +109,18 @@ async def mint_invoice_nft(
     
     try:
         # Mint NFT on blockchain
+        # Prepare maturity date as datetime object
+        maturity_date = invoice.issue_date
+        if isinstance(invoice.issue_date, str):
+            # Convert string to datetime if needed
+            from dateutil import parser
+            maturity_date = parser.parse(invoice.issue_date)
+        elif not hasattr(maturity_date, 'timestamp'):
+            # If it's a date object, convert to datetime
+            from datetime import date
+            if isinstance(maturity_date, date):
+                maturity_date = datetime.combine(maturity_date, datetime.min.time())
+        
         result = web3_service.mint_invoice_nft(
             invoice_id=invoice.id,
             seller_address=seller_org.wallet_address,
@@ -92,7 +130,7 @@ async def mint_invoice_nft(
             face_value=invoice.amount,
             funding_request=invoice.amount * (invoice.proposed_ltv or 0.8),
             discount_rate=invoice.discount_rate or 0.0,
-            maturity_date=str(invoice.issue_date) if invoice.issue_date else "",
+            maturity_date=maturity_date,
             metadata_uri=metadata_uri
         )
         

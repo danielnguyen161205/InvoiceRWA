@@ -50,6 +50,7 @@ def create_organization(payload: OrganizationCreate, db: Session = Depends(get_d
             existing_org.bank_account_info = payload.bank_account_info
             existing_org.authorized_persons_list = payload.authorized_persons_list
             existing_org.status = OrgStatus.PENDING  # Reset to pending for review
+            existing_org.rejection_reason = None  # Clear rejection reason when resubmitting
             
             db.commit()
             db.refresh(existing_org)
@@ -206,6 +207,16 @@ def remove_organization_wallet(
     return {"message": "Wallet address removed successfully"}
 
 
+# Alternative endpoint path for consistency
+@router.delete("/organization/wallet")
+def remove_org_wallet_alt(
+    db: Session = Depends(get_db),
+    user: dict = Depends(get_current_user)
+):
+    """Remove wallet address from user's organization (alternative path)"""
+    return remove_organization_wallet(db, user)
+
+
 @router.get("/organizations/buyers", response_model=List[OrganizationOut])
 def get_approved_buyers(db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
     """Get list of KYC-verified organizations (SME/BUYER roles) that can be selected as buyers"""
@@ -238,6 +249,149 @@ def get_organization(org_id: int, db: Session = Depends(get_db)):
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
     return org
+
+
+@router.get("/organizations/{org_id}/comprehensive")
+def get_organization_comprehensive(org_id: int, db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
+    """Get comprehensive organization data with KYB, KYC, UBO, shareholders, and documents - ADMIN only"""
+    from app.models.user import User
+    import json
+    
+    # Check admin access
+    roles = user.get('roles', [])
+    if 'ADMIN' not in roles:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    # Get organization
+    org = db.query(Organization).filter(Organization.id == org_id).first()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    
+    # Get user linked to organization
+    user_obj = db.query(User).filter(User.organization_id == org_id).first()
+    
+    # Get KYC persons
+    kyc_persons = db.query(KycPerson).filter(KycPerson.org_id == org_id).all()
+    
+    # Get shareholders
+    shareholders = db.query(Shareholder).filter(Shareholder.org_id == org_id).all()
+    
+    # Get UBO
+    ubo = db.query(UBO).filter(UBO.org_id == org_id).first()
+    
+    # Get documents
+    documents = db.query(Document).filter(Document.org_id == org_id).all()
+    
+    # Generate presigned URLs for documents
+    docs_with_urls = []
+    for doc in documents:
+        doc_data = {
+            "id": doc.id,
+            "doc_type": doc.doc_type,
+            "filename": doc.filename,
+            "file_hash": doc.file_hash,
+            "storage_path": doc.storage_path,
+            "uploaded_by": doc.uploaded_by,
+            "upload_time": doc.upload_time.isoformat() if doc.upload_time else None,
+            "review_status": doc.review_status,
+            "download_url": None
+        }
+        
+        # Generate presigned URL if storage_path exists
+        if doc.storage_path:
+            try:
+                doc_data["download_url"] = generate_presigned_url(doc.storage_path)
+            except Exception as e:
+                print(f"Error generating presigned URL: {e}")
+        
+        docs_with_urls.append(doc_data)
+    
+    # Parse UBO ownership documents
+    ubo_documents = []
+    if ubo and ubo.ownership_documents:
+        try:
+            ubo_docs = json.loads(ubo.ownership_documents)
+            for ubo_doc in ubo_docs:
+                if isinstance(ubo_doc, dict) and 'path' in ubo_doc:
+                    try:
+                        ubo_doc['download_url'] = generate_presigned_url(ubo_doc['path'])
+                    except:
+                        ubo_doc['download_url'] = None
+                    ubo_documents.append(ubo_doc)
+        except:
+            pass
+    
+    # Build comprehensive response
+    return {
+        "organization": {
+            "id": org.id,
+            "uid": org.uid,
+            "org_type": org.org_type,
+            "legal_name": org.legal_name,
+            "trade_name": org.trade_name,
+            "foreign_name": org.foreign_name,
+            "tax_id": org.tax_id,
+            "registration_number": org.registration_number,
+            "legal_form": org.legal_form,
+            "operation_status": org.operation_status,
+            "establishment_date": org.establishment_date.isoformat() if org.establishment_date else None,
+            "legal_representative": org.legal_representative,
+            "address": org.address,
+            "tax_verification_status": org.tax_verification_status,
+            "bank_account_info": org.bank_account_info,
+            "authorized_persons_list": org.authorized_persons_list,
+            "wallet_address": org.wallet_address,
+            "status": org.status,
+            "risk_level": org.risk_level,
+            "verified_at": org.verified_at.isoformat() if org.verified_at else None,
+            "verified_by": org.verified_by,
+            "rejection_reason": org.rejection_reason,
+            "created_at": org.created_at.isoformat() if org.created_at else None,
+            "updated_at": org.updated_at.isoformat() if org.updated_at else None,
+        },
+        "user": {
+            "email": user_obj.email if user_obj else None,
+            "roles": user_obj.roles if user_obj else None,
+        } if user_obj else None,
+        "kyc_persons": [
+            {
+                "id": p.id,
+                "full_name": p.full_name,
+                "date_of_birth": p.date_of_birth.isoformat() if p.date_of_birth else None,
+                "nationality": p.nationality,
+                "id_type": p.id_type,
+                "id_number": p.id_number,
+                "id_issue_date": p.id_issue_date.isoformat() if p.id_issue_date else None,
+                "id_issue_place": p.id_issue_place,
+                "address": p.address,
+                "contact": p.contact,
+                "role": p.role,
+                "id_document_path": p.id_document_path,
+            }
+            for p in kyc_persons
+        ],
+        "shareholders": [
+            {
+                "id": s.id,
+                "name": s.name,
+                "shareholder_type": s.shareholder_type,
+                "ownership_percent": s.ownership_percent,
+                "id_number": s.id_number,
+                "address": s.address,
+                "contact": s.contact,
+            }
+            for s in shareholders
+        ],
+        "ubo": {
+            "id": ubo.id,
+            "is_listed": ubo.is_listed,
+            "stock_exchange": ubo.stock_exchange,
+            "stock_code": ubo.stock_code,
+            "notes": ubo.notes,
+            "ownership_documents": ubo_documents,
+        } if ubo else None,
+        "documents": docs_with_urls,
+    }
 
 
 @router.post("/organizations/{org_id}/documents", response_model=DocumentOut)
@@ -327,6 +481,40 @@ def submit_for_review(org_id: int, db: Session = Depends(get_db), user: dict = D
     return {"status": "submitted"}
 
 
+@router.post("/organizations/{org_id}/resubmit")
+def resubmit_for_review(org_id: int, db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
+    """Allow user to resubmit KYB/KYC after rejection"""
+    from app.models.user import User
+    
+    # Verify user owns this organization
+    user_id = int(user.get('sub'))
+    db_user = db.query(User).filter(User.id == user_id).first()
+    
+    if not db_user or db_user.organization_id != org_id:
+        raise HTTPException(status_code=403, detail="You don't have permission to resubmit this organization")
+    
+    org = db.query(Organization).filter(Organization.id == org_id).first()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    
+    # Only allow resubmission if status is REJECTED
+    if org.status != OrgStatus.REJECTED:
+        raise HTTPException(status_code=400, detail="Only rejected organizations can be resubmitted")
+    
+    # Reset status to PENDING and clear rejection reason
+    org.status = OrgStatus.PENDING
+    org.rejection_reason = None
+    db.add(org)
+    db.commit()
+    
+    try:
+        audit_log(db, user.get('sub'), ','.join(user.get('roles', [])) if user.get('roles') else None, 'RESUBMIT_AFTER_REJECTION', 'organization', str(org.id), 'User resubmitted after rejection')
+    except Exception:
+        pass
+    
+    return {"status": "pending", "message": "Organization reset to PENDING status. Please update your information and submit for review."}
+
+
 @router.post("/organizations/{org_id}/review")
 def review_org(org_id: int, action: ReviewAction, db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
     org = db.query(Organization).filter(Organization.id == org_id).first()
@@ -347,8 +535,15 @@ def review_org(org_id: int, action: ReviewAction, db: Session = Depends(get_db),
     # Update status directly based on action
     if action.action == "APPROVE":
         org.status = OrgStatus.APPROVED
+        org.rejection_reason = None  # Clear any previous rejection reason
+        # Set verified_at timestamp when approved
+        import datetime
+        org.verified_at = datetime.datetime.utcnow()
+        org.verified_by = int(reviewer_sub)  # Store who approved it
     else:
         org.status = OrgStatus.REJECTED
+        # Save rejection comments so user can see why they were rejected
+        org.rejection_reason = action.comments if action.comments else "Your application was rejected. Please review and resubmit."
 
     db.add(org)
     db.commit()
@@ -673,4 +868,55 @@ def save_wallet_address(
         "message": "Wallet address saved successfully",
         "wallet_address": wallet_address,
         "organization_id": org.id
+    }
+
+
+@router.get("/admin/wallets-check")
+def admin_check_duplicate_wallets(
+    db: Session = Depends(get_db),
+    user: dict = Depends(get_current_user)
+):
+    """
+    Admin endpoint to check for duplicate wallet addresses
+    """
+    # Check if user is ADMIN
+    roles = user.get("roles") or ([user.get("role")] if user.get("role") else [])
+    if "ADMIN" not in roles:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    # Get all organizations with wallet addresses
+    orgs = db.query(Organization).filter(Organization.wallet_address.isnot(None)).all()
+    
+    # Track wallet addresses and find duplicates
+    wallet_map = {}
+    duplicates = []
+    all_wallets = []
+    
+    for org in orgs:
+        wallet = org.wallet_address.lower() if org.wallet_address else None
+        if wallet:
+            org_info = {
+                "id": org.id,
+                "legal_name": org.legal_name,
+                "trade_name": org.trade_name,
+                "wallet_address": org.wallet_address,
+                "status": org.status
+            }
+            all_wallets.append(org_info)
+            
+            if wallet in wallet_map:
+                # Found duplicate
+                duplicates.append({
+                    "wallet_address": wallet,
+                    "organizations": [wallet_map[wallet], org_info]
+                })
+            else:
+                wallet_map[wallet] = org_info
+    
+    return {
+        "total_organizations_with_wallets": len(orgs),
+        "unique_wallets": len(wallet_map),
+        "duplicate_count": len(duplicates),
+        "duplicates": duplicates,
+        "all_wallets": all_wallets
     }

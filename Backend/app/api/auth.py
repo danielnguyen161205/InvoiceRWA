@@ -4,9 +4,10 @@ from app.db.session import get_db
 from app.models.user import User
 from app.models.organization import Organization
 from app.schemas.user import UserCreate, UserLogin, Token
-from app.core.security import hash_password, verify_password, create_access_token
+from app.core.security import hash_password, verify_password, create_access_token, get_current_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+users_router = APIRouter(prefix="/users", tags=["users"])
 
 
 @router.post("/register", response_model=Token)
@@ -76,3 +77,36 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
         "verified_at": verified_at
     })
     return {"access_token": token, "token_type": "bearer"}
+
+
+# GET LIST OF BANKS
+@users_router.get("/banks")
+def get_banks(
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user)
+):
+    """Get list of all users with BANK role (for SME to send financing requests)"""
+    
+    # Query users who have BANK role
+    banks = db.query(User).filter(
+        (User.roles.like('%BANK%')) | (User.role == 'BANK')
+    ).all()
+    
+    # Return bank information with organization name if available
+    result = []
+    for bank in banks:
+        bank_data = {
+            "id": bank.id,
+            "email": bank.email,
+            "organization_name": None
+        }
+        
+        # Get organization name if available
+        if bank.organization_id:
+            org = db.query(Organization).filter(Organization.id == bank.organization_id).first()
+            if org:
+                bank_data["organization_name"] = org.legal_name
+        
+        result.append(bank_data)
+    
+    return result

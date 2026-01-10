@@ -13,10 +13,21 @@
       <!--=============== CSS ===============-->
       <link rel="stylesheet" href="../css/tailwind.generated.css">
       <link rel="stylesheet" href="../css/style.css">
+      <script src="../js/i18n.js"></script>
 
-      <title>Responsive login form with slider images - Bedimcode</title>
+      <title>Login - Invoice RWA</title>
    </head>
    <body>
+      <!-- Language Switcher (Top Right) -->
+      <div class="fixed top-4 right-4 z-50 flex items-center space-x-2 bg-white rounded-lg shadow-md p-1">
+         <button class="lang-btn px-3 py-1.5 text-sm font-medium rounded transition-all duration-200" data-lang="vi">
+            🇻🇳 VI
+         </button>
+         <button class="lang-btn px-3 py-1.5 text-sm font-medium rounded transition-all duration-200" data-lang="en">
+            🇬🇧 EN
+         </button>
+      </div>
+
       <div class="login container grid">
          <div class="login__container grid">
             <div class="login__swiper swiper">
@@ -56,12 +67,12 @@
    
             <div class="login__area grid">
                <div class="login__data">
-                  <h1 class="login__title">Welcome Back 👋</h1>
+                  <h1 class="login__title" data-i18n="auth.welcomeBack">Welcome Back 👋</h1>
       
-                  <p class="login__description">Please enter your details.</p>
+                  <p class="login__description" data-i18n="auth.pleaseEnterDetails">Please enter your details.</p>
       
                   <button class="login__button-border">
-                     <i class="ri-google-fill"></i> Sign in with Google
+                     <i class="ri-google-fill"></i> <span data-i18n="auth.signInWithGoogle">Sign in with Google</span>
                   </button>
                </div>
    
@@ -70,25 +81,25 @@
                <form action="" class="login__form">
                   <div class="login__content grid">
                         <div class="login__box">
-                           <input id="email" type="email" name="email" placeholder="Email" class="login__input">
+                           <input id="email" type="email" name="email" data-i18n-attr="placeholder:auth.email" placeholder="Email" class="login__input">
                            <i class="ri-mail-line"></i>
                         </div>
       
                         <div class="login__box">
-                           <input id="password" type="password" name="password" placeholder="Password" class="login__input">
+                           <input id="password" type="password" name="password" data-i18n-attr="placeholder:auth.password" placeholder="Password" class="login__input">
                            <i class="ri-eye-line login__eye" id="loginEye"></i>
                         </div>
                      </div>
    
-                  <a href="#" class="login__forgot">Forgot Password?</a>
+                  <a href="#" class="login__forgot" data-i18n="auth.forgotPassword">Forgot Password?</a>
    
-                    <button id="loginBtn" type="submit" class="login__button">Log In</button>
+                    <button id="loginBtn" type="submit" class="login__button" data-i18n="auth.login">Log In</button>
                            <p id="error" class="text-red-500 mt-2"></p>
                </form>
                
                <p class="login__switch">
-                  Don’t have an account? 
-                    <a href="../pages/register.html" class="login__sign">Sign Up</a>
+                  <span data-i18n="auth.noAccount">Don't have an account?</span>
+                    <a href="../pages/register.html" class="login__sign" data-i18n="auth.signUp">Sign Up</a>
                </p>
             </div>
          </div>

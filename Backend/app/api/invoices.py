@@ -24,14 +24,35 @@ def create_invoice(
     db: Session = Depends(get_db),
     user=Depends(get_current_user)
 ):
+    from app.models.user import User
+    
     roles = user.get("roles") or ([user.get("role")] if user.get("role") else [])
     if "SME" not in roles:
         raise HTTPException(status_code=403, detail="Only SME can create invoice")
+    
+     # Validate amount
+    if data.amount is None or data.amount <= 0:
+        raise HTTPException(status_code=400, detail="Amount must be a positive number")
+    if data.amount > 10_000_000_000:  # 10 billion
+        raise HTTPException(status_code=400, detail="Amount exceeds maximum allowed (10 billion)")
 
+    # Validate discount_rate
+    if data.discount_rate is not None and data.discount_rate < 0:
+        raise HTTPException(status_code=400, detail="Discount rate cannot be negative")
+
+    # Validate payment_term
+    if data.payment_term is not None and data.payment_term <= 0:
+        raise HTTPException(status_code=400, detail="Payment term must be positive")
+
+    user_id = int(user["sub"])
+    
+    # Get SME user's organization_id
+    sme_user = db.query(User).filter(User.id == user_id).first()
+    sme_org_id = sme_user.organization_id if sme_user else None
+    
     # Find buyer_id from buyer_org_id
     buyer_user_id = None
     if data.buyer_org_id:
-        from app.models.user import User
         # Find any user linked to this organization with BUYER role
         buyer_user = db.query(User).filter(
             User.organization_id == data.buyer_org_id,
@@ -50,6 +71,7 @@ def create_invoice(
         buyer_name=data.buyer_name,
         buyer_org_id=data.buyer_org_id,
         buyer_id=buyer_user_id,  # Set buyer_id from org lookup
+        sme_org_id=sme_org_id,  # Auto-assign SME organization
         funding_category=data.funding_category,
         funding_purpose=data.funding_purpose,
         recourse_type=data.recourse_type,
@@ -57,7 +79,7 @@ def create_invoice(
         proposed_ltv=data.proposed_ltv,
         discount_rate=data.discount_rate,
         dispute_method=data.dispute_method,
-        sme_id=int(user["sub"]),
+        sme_id=user_id,
     )
     db.add(invoice)
     db.commit()
@@ -111,7 +133,17 @@ def list_my_invoices(
             "created_at": invoice.created_at,
             "bank_id": invoice.bank_id,
             "purchased_at": invoice.purchased_at,
-            "purchase_price": invoice.purchase_price
+            "purchase_price": invoice.purchase_price,
+            # Financing confirmation fields
+            "bank_confirmed_financed": invoice.bank_confirmed_financed or False,
+            "sme_confirmed_receipt": invoice.sme_confirmed_receipt or False,
+            "bank_financed_at": invoice.bank_financed_at,
+            "sme_confirmed_at": getattr(invoice, 'sme_confirmed_at', None),
+            # NFT fields
+            "token_id": invoice.token_id,
+            "nft_contract_address": invoice.nft_contract_address,
+            "blockchain_tx_hash": invoice.blockchain_tx_hash,
+            "tokenized_at": invoice.tokenized_at
         }
         
         # Get seller name from sme_id
@@ -291,6 +323,130 @@ def buyer_edit_invoice(
     db.commit()
     db.refresh(invoice)
     return {"message": "Invoice updated. Waiting for supplier approval.", "status": invoice.status}
+
+
+# SME: EDIT INVOICE DIRECTLY (DRAFT/EDITING → EDITING)
+@router.put("/{invoice_id}/sme-edit")
+def sme_edit_invoice(
+    invoice_id: int,
+    data: InvoiceUpdate,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user)
+):
+    """SME edits invoice directly (DRAFT/EDITING → EDITING, needs Buyer approval)"""
+    invoice = db.query(Invoice).get(invoice_id)
+    user_id = int(user["sub"])
+
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    
+    # Only SME can edit
+    if invoice.sme_id != user_id:
+        raise HTTPException(status_code=403, detail="Only SME can edit invoice")
+    
+    if invoice.status not in ["DRAFT", "EDITING"]:
+        raise HTTPException(status_code=400, detail="Can only edit DRAFT or EDITING invoices")
+
+    # Update invoice fields - all editable fields
+    if data.serial_no is not None:
+        invoice.serial_no = data.serial_no
+    if data.issue_date is not None:
+        invoice.issue_date = data.issue_date
+    if data.lookup_code is not None:
+        invoice.lookup_code = data.lookup_code
+    if data.amount is not None:
+        invoice.amount = data.amount
+    if data.currency is not None:
+        invoice.currency = data.currency
+    if data.buyer_name is not None:
+        invoice.buyer_name = data.buyer_name
+    if data.recourse_type is not None:
+        invoice.recourse_type = data.recourse_type
+    if data.payment_term is not None:
+        invoice.payment_term = data.payment_term
+    if data.proposed_ltv is not None:
+        invoice.proposed_ltv = data.proposed_ltv
+    if data.discount_rate is not None:
+        invoice.discount_rate = data.discount_rate
+    if data.funding_category is not None:
+        invoice.funding_category = data.funding_category
+    if data.funding_purpose is not None:
+        invoice.funding_purpose = data.funding_purpose
+    if data.dispute_method is not None:
+        invoice.dispute_method = data.dispute_method
+    
+    # Change status to EDITING (waiting for Buyer to accept/submit)
+    invoice.status = "EDITING"
+    invoice.change_request = data.edit_note or "SME edited invoice directly"
+    invoice.change_requested_at = datetime.datetime.utcnow()
+    invoice.change_requested_by = user_id
+    
+    db.commit()
+    db.refresh(invoice)
+    return {"message": "Invoice updated. Waiting for buyer approval.", "status": invoice.status}
+
+
+# ADMIN: EDIT INVOICE (can edit any invoice, any status)
+@router.put("/{invoice_id}/admin-edit")
+def admin_edit_invoice(
+    invoice_id: int,
+    data: InvoiceUpdate,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user)
+):
+    """Admin can edit any invoice field including organization IDs"""
+    invoice = db.query(Invoice).get(invoice_id)
+
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    
+    # Check if user is ADMIN
+    roles = user.get("roles") or ([user.get("role")] if user.get("role") else [])
+    if "ADMIN" not in roles:
+        raise HTTPException(status_code=403, detail="Only ADMIN can use this endpoint")
+
+    # Update all invoice fields including org IDs
+    if data.serial_no is not None:
+        invoice.serial_no = data.serial_no
+    if data.issue_date is not None:
+        invoice.issue_date = data.issue_date
+    if data.lookup_code is not None:
+        invoice.lookup_code = data.lookup_code
+    if data.amount is not None:
+        invoice.amount = data.amount
+    if data.currency is not None:
+        invoice.currency = data.currency
+    if data.buyer_name is not None:
+        invoice.buyer_name = data.buyer_name
+    if data.recourse_type is not None:
+        invoice.recourse_type = data.recourse_type
+    if data.payment_term is not None:
+        invoice.payment_term = data.payment_term
+    if data.proposed_ltv is not None:
+        invoice.proposed_ltv = data.proposed_ltv
+    if data.discount_rate is not None:
+        invoice.discount_rate = data.discount_rate
+    if data.funding_category is not None:
+        invoice.funding_category = data.funding_category
+    if data.funding_purpose is not None:
+        invoice.funding_purpose = data.funding_purpose
+    if data.dispute_method is not None:
+        invoice.dispute_method = data.dispute_method
+    
+    # Admin can update organization IDs
+    if hasattr(data, 'sme_org_id') and data.sme_org_id is not None:
+        invoice.sme_org_id = data.sme_org_id
+    if hasattr(data, 'buyer_org_id') and data.buyer_org_id is not None:
+        invoice.buyer_org_id = data.buyer_org_id
+    
+    # Log the change
+    invoice.change_request = data.edit_note or "Admin edited invoice"
+    invoice.change_requested_at = datetime.datetime.utcnow()
+    invoice.change_requested_by = int(user["sub"])
+    
+    db.commit()
+    db.refresh(invoice)
+    return {"message": "Invoice updated by admin", "status": invoice.status}
 
 
 # SUPPLIER: RESUBMIT AFTER EDITING (EDITING → DRAFT)
@@ -627,7 +783,7 @@ def purchase_invoice(
     db: Session = Depends(get_db),
     user=Depends(get_current_user)
 ):
-    """Bank purchases an approved invoice"""
+    """Bank purchases an approved invoice and receives NFT ownership"""
     roles = user.get("roles") or ([user.get("role")] if user.get("role") else [])
     user_id = int(user["sub"])
     
@@ -644,6 +800,43 @@ def purchase_invoice(
     if invoice.bank_id is not None:
         raise HTTPException(status_code=400, detail="Invoice already purchased")
 
+    # If invoice has NFT, transfer it to bank
+    nft_transfer_result = None
+    if invoice.token_id:
+        from app.services.web3_service import web3_service
+        from app.models.organization import Organization
+        from app.models.user import User
+        
+        # Get bank user's organization
+        bank_user = db.query(User).filter(User.id == user_id).first()
+        if not bank_user or not bank_user.organization_id:
+            raise HTTPException(status_code=400, detail="Bank user must have an organization")
+        
+        bank_org = db.query(Organization).filter(Organization.id == bank_user.organization_id).first()
+        if not bank_org or not bank_org.wallet_address:
+            raise HTTPException(status_code=400, detail="Bank organization must have a wallet address")
+        
+        # Get SME organization wallet
+        sme_org = db.query(Organization).filter(Organization.id == invoice.sme_org_id).first()
+        if not sme_org or not sme_org.wallet_address:
+            raise HTTPException(status_code=400, detail="SME organization wallet not found")
+        
+        # Transfer NFT from SME to Bank
+        try:
+            nft_transfer_result = web3_service.transfer_nft(
+                from_address=sme_org.wallet_address,
+                to_address=bank_org.wallet_address,
+                token_id=int(invoice.token_id)
+            )
+            
+            if not nft_transfer_result or not nft_transfer_result.get('success'):
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to transfer NFT: {nft_transfer_result.get('error', 'Unknown error')}"
+                )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"NFT transfer error: {str(e)}")
+
     # Record the purchase and change status to FINANCED
     invoice.bank_id = user_id
     invoice.purchased_at = datetime.datetime.utcnow()
@@ -652,7 +845,20 @@ def purchase_invoice(
     
     db.commit()
     db.refresh(invoice)
-    return {"message": "Invoice purchased successfully", "invoice": invoice}
+    
+    response = {
+        "message": "Invoice purchased successfully",
+        "invoice": invoice
+    }
+    
+    if nft_transfer_result:
+        response["nft_transfer"] = {
+            "tx_hash": nft_transfer_result.get('tx_hash'),
+            "from": nft_transfer_result.get('from'),
+            "to": nft_transfer_result.get('to')
+        }
+    
+    return response
 
 
 # BUYER MARK INVOICE AS PAID (FINANCED -> SETTLED)
@@ -727,12 +933,74 @@ def admin_view_all_invoices(
     db: Session = Depends(get_db),
     user=Depends(get_current_user)
 ):
+    from app.models.user import User
+    from app.models.organization import Organization
+    
     roles = user.get("roles") or ([user.get("role")] if user.get("role") else [])
     if "ADMIN" not in roles:
         raise HTTPException(status_code=403, detail="Admin access required")
     
-    # Admin can see all invoices
-    return db.query(Invoice).all()
+    # Get all invoices
+    invoices = db.query(Invoice).all()
+    
+    # Add seller_name and buyer_name to each invoice
+    result = []
+    for invoice in invoices:
+        invoice_dict = {
+            "id": invoice.id,
+            "invoice_number": invoice.invoice_number,
+            "serial_no": invoice.serial_no,
+            "issue_date": invoice.issue_date,
+            "lookup_code": invoice.lookup_code,
+            "amount": invoice.amount,
+            "currency": invoice.currency,
+            "status": invoice.status,
+            "buyer_name": invoice.buyer_name,
+            "buyer_org_id": invoice.buyer_org_id,
+            "sme_org_id": invoice.sme_org_id,
+            "sme_id": invoice.sme_id,
+            "buyer_id": invoice.buyer_id,
+            "funding_category": invoice.funding_category,
+            "funding_purpose": invoice.funding_purpose,
+            "recourse_type": invoice.recourse_type,
+            "payment_term": invoice.payment_term,
+            "proposed_ltv": invoice.proposed_ltv,
+            "discount_rate": invoice.discount_rate,
+            "dispute_method": invoice.dispute_method,
+            "created_at": invoice.created_at,
+            "bank_id": invoice.bank_id,
+            "purchased_at": invoice.purchased_at,
+            "purchase_price": invoice.purchase_price,
+            "rejection_comment": invoice.rejection_comment,
+            "rejected_at": invoice.rejected_at,
+            "rejected_by": invoice.rejected_by,
+            "token_id": invoice.token_id,
+            "nft_contract_address": invoice.nft_contract_address,
+            "token_standard": invoice.token_standard,
+            "blockchain_tx_hash": invoice.blockchain_tx_hash,
+            "tokenized_at": invoice.tokenized_at
+        }
+        
+        # Get seller organization name from sme_org_id (preferred) or user's organization
+        seller_name = None
+        if invoice.sme_org_id:
+            org = db.query(Organization).filter(Organization.id == invoice.sme_org_id).first()
+            seller_name = org.legal_name or org.trade_name if org else None
+        
+        # Fallback to user's organization if sme_org_id not set
+        if not seller_name and invoice.sme_id:
+            seller = db.query(User).filter(User.id == invoice.sme_id).first()
+            if seller and seller.organization_id:
+                org = db.query(Organization).filter(Organization.id == seller.organization_id).first()
+                seller_name = org.legal_name or org.trade_name if org else seller.email
+            elif seller:
+                seller_name = seller.email
+        
+        invoice_dict["seller_name"] = seller_name
+            
+        result.append(invoice_dict)
+    
+    return result
 
 
 # BANK APPROVE / REJECT
@@ -743,6 +1011,7 @@ def bank_decision(
     user=Depends(get_current_user),
     decision_data: dict = None
 ):
+    import datetime
     roles = user.get("roles") or ([user.get("role")] if user.get("role") else [])
     if "BANK" not in roles and "ADMIN" not in roles:
         raise HTTPException(status_code=403, detail="Only BANK or ADMIN can approve/reject")
@@ -760,8 +1029,20 @@ def bank_decision(
         raise HTTPException(status_code=400, detail="Decision must be APPROVED or REJECTED")
 
     invoice.status = decision
+    
+    # If rejected, save rejection comment and metadata
+    if decision == "REJECTED":
+        invoice.rejection_comment = decision_data.get("comment", "Invoice rejected by admin")
+        invoice.rejected_at = datetime.datetime.utcnow()
+        invoice.rejected_by = int(user.get("sub"))
+    else:
+        # Clear rejection data if approved
+        invoice.rejection_comment = None
+        invoice.rejected_at = None
+        invoice.rejected_by = None
+    
     db.commit()
-    return {"status": invoice.status}
+    return {"status": invoice.status, "message": f"Invoice {decision.lower()} successfully"}
 
 
 # Dispute schemas
@@ -847,11 +1128,12 @@ def dispute_invoice(
     # Log the dispute
     from app.models.audit import AuditLog
     audit_log = AuditLog(
-        entity_type='INVOICE',
-        entity_id=invoice_id,
+        target_type='INVOICE',
+        target_id=str(invoice_id),
         action='DISPUTE',
-        user_id=user_id,
-        details=f"Dispute Type: {dispute_type} | Reason: {dispute_data.reason_code} | Original Status: {original_status}"
+        actor_sub=str(user_id),
+        actor_roles=','.join(roles),
+        comments=f"Dispute Type: {dispute_type} | Reason: {dispute_data.reason_code} | Original Status: {original_status}"
     )
     db.add(audit_log)
     

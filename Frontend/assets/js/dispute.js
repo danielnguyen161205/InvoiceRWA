@@ -160,6 +160,12 @@ async function submitDispute() {
 
     try {
         const token = localStorage.getItem('token');
+        
+        // Define API_URL if not already defined
+        const apiUrl = typeof API_URL !== 'undefined' ? API_URL : 'http://127.0.0.1:8000';
+        
+        console.log('🔍 Submitting dispute for invoice:', invoice.id);
+        console.log('🔍 API URL:', apiUrl);
 
         // Prepare dispute data
         const disputeData = {
@@ -167,15 +173,19 @@ async function submitDispute() {
             description: description.trim(),
             invoice_status: invoice.status
         };
+        
+        console.log('📤 Dispute data:', disputeData);
 
         // Step 1: Submit dispute to backend
-        const response = await fetch(`${API_BASE_URL}/invoices/${invoice.id}/dispute`, {
+        const response = await fetch(`${apiUrl}/api/invoices/${invoice.id}/dispute`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify(disputeData)
+            body: JSON.stringify(disputeData),
+            mode: 'cors',
+            credentials: 'include'
         });
 
         if (!response.ok) {
@@ -192,12 +202,14 @@ async function submitDispute() {
                 formData.append('files', file);
             });
 
-            const uploadResponse = await fetch(`${API_BASE_URL}/invoices/${invoice.id}/dispute/evidence`, {
+            const uploadResponse = await fetch(`${apiUrl}/api/invoices/${invoice.id}/dispute/evidence`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`
                 },
-                body: formData
+                body: formData,
+                mode: 'cors',
+                credentials: 'include'
             });
 
             if (!uploadResponse.ok) {

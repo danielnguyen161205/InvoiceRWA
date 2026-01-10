@@ -8,7 +8,8 @@ class InvoiceStatus(str, PyEnum):
     EDITING = "EDITING"          # Buyer requested changes
     SUBMITTED = "SUBMITTED"      # Buyer accepted - snapshot locked
     APPROVED = "APPROVED"        # System verified - ready for finance
-    FINANCED = "FINANCED"        # Purchased by Bank - financing in progress
+    FINANCING = "FINANCING"      # Bank is financing the invoice
+    FINANCED = "FINANCED"        # Both bank transferred and SME confirmed receipt
     SETTLED = "SETTLED"          # Buyer marked as paid - waiting for bank confirmation
     CLOSED = "CLOSED"            # Bank confirmed payment received - invoice complete
     DISPUTED = "DISPUTED"        # Buyer raised dispute
@@ -77,9 +78,20 @@ class Invoice(Base):
     paid_at = Column(DateTime, nullable=True)  # When buyer marked as paid
     closed_at = Column(DateTime, nullable=True)  # When bank confirmed payment  # Actual purchase amount
     
+    # Rejection tracking
+    rejection_comment = Column(Text, nullable=True)  # Comment from admin/bank when rejecting
+    rejected_at = Column(DateTime, nullable=True)  # When invoice was rejected
+    rejected_by = Column(Integer, nullable=True)  # User ID who rejected
+    
     # Blockchain/NFT fields
     token_id = Column(String(100), nullable=True)  # NFT token ID
     nft_contract_address = Column(String(255), nullable=True)  # Smart contract address
     token_standard = Column(String(20), nullable=True)  # e.g., ERC-721
     blockchain_tx_hash = Column(String(255), nullable=True)  # Mint transaction hash
     tokenized_at = Column(DateTime, nullable=True)  # When NFT was minted
+    
+    # Financing confirmation tracking
+    bank_confirmed_financed = Column(Boolean, default=False)  # Bank confirmed money transferred
+    sme_confirmed_receipt = Column(Boolean, default=False)  # SME confirmed receipt
+    bank_financed_at = Column(DateTime, nullable=True)  # When bank marked as financed
+   

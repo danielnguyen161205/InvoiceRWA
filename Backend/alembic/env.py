@@ -15,6 +15,15 @@ fileConfig(config.config_file_name)
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from app.db.base import Base  # noqa: E402
+# Import all models so Alembic can detect them
+from app.models.user import User  # noqa: E402
+from app.models.invoice import Invoice  # noqa: E402
+from app.models.organization import Organization  # noqa: E402
+from app.models.kyc_person import KycPerson  # noqa: E402
+from app.models.ubo import UBO  # noqa: E402
+from app.models.document import Document  # noqa: E402
+from app.models.audit import AuditLog  # noqa: E402
+from app.models.bank_request import BankRequest  # noqa: E402
 
 # set SQLALCHEMY URL from env if provided
 db_url = os.getenv('DATABASE_URL')

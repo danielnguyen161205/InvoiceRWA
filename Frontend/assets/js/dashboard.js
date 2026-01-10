@@ -1,6 +1,11 @@
 // Check authentication and KYC status on page load
 requireAuth();
 
+// Format VND currency
+function formatVND(amount) {
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+}
+
 // Track previous invoice counts for change detection
 let previousInvoiceCounts = {
   sme: 0,
@@ -177,7 +182,17 @@ function renderInvoiceTable(invoices, role) {
       ? (inv.buyer_name || inv.buyer || "-") 
       : (inv.seller_name || inv.seller || inv.sme_name || "-");
 
-    const action = `<a href="#" onclick="showInvoiceDetail(${inv.id}, '${role}'); return false;" class="text-indigo-600 hover:underline cursor-pointer">View</a>`;
+    let action = `<a href="#" onclick="showInvoiceDetail(${inv.id}, '${role}'); return false;" class="text-indigo-600 hover:underline cursor-pointer">View</a>`;
+    
+    // Add "Request Financing" button for SME if invoice is APPROVED
+    if (role === "sme" && inv.status === "APPROVED") {
+      action += ` | <a href="#" onclick="openBankRequestModal(${inv.id}, '${inv.invoice_number}'); return false;" class="text-green-600 hover:underline cursor-pointer font-semibold">Request Financing</a>`;
+    }
+    
+    // Add "Received" button for SME if invoice has FINANCING request (bank sent money)
+    if (role === "sme" && inv.bank_confirmed_financed && !inv.sme_confirmed_receipt) {
+      action += ` | <a href="#" onclick="confirmReceipt(${inv.id}); return false;" class="text-blue-600 hover:underline cursor-pointer font-semibold">Received</a>`;
+    }
 
     // NFT Status badge
     const nftStatus = inv.token_id 
@@ -193,7 +208,7 @@ function renderInvoiceTable(invoices, role) {
       <div class="invoice-table-row bg-white flex items-center px-10 py-4 text-sm text-gray-600">
         <div class="text-left" style="width: 140px;">${inv.invoice_number || inv.id}</div>
         <div class="text-left" style="width: 200px;">${counterparty}</div>
-        <div class="text-center" style="width: 140px;">$${inv.amount.toLocaleString()}</div>
+        <div class="text-center" style="width: 140px;">${formatVND(inv.amount)}</div>
         <div class="text-center" style="width: 140px;"><span class="status ${inv.status}">${inv.status}</span></div>
         <div class="text-center" style="width: 120px;">${nftStatus}</div>
         <div class="text-center" style="width: 140px;">${new Date(inv.created_at).toLocaleDateString()}</div>
@@ -204,8 +219,8 @@ function renderInvoiceTable(invoices, role) {
   });
 
   document.getElementById(totalId).innerText = invoices.length;
-  document.getElementById(amountId).innerText = "$" + total.toLocaleString();
-  document.getElementById(fundedId).innerText = "$" + funded.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  document.getElementById(amountId).innerText = formatVND(total);
+  document.getElementById(fundedId).innerText = formatVND(funded);
 }
 
 // Date validation helpers — keep end date >= start date
@@ -292,6 +307,20 @@ async function showInvoiceDetail(invoiceId, role = 'sme') {
     document.getElementById('detailIssueDate').textContent = invoice.issue_date ? new Date(invoice.issue_date).toLocaleDateString('vi-VN') : '-';
     document.getElementById('detailLookupCode').textContent = invoice.lookup_code || '-';
     document.getElementById('detailCurrency').textContent = invoice.currency || 'VND';
+    
+    // Show/hide rejection comment section
+    const rejectionCommentSection = document.getElementById('rejectionCommentSection');
+    if (invoice.status === 'REJECTED' && invoice.rejection_comment) {
+      if (rejectionCommentSection) {
+        rejectionCommentSection.style.display = 'block';
+        document.getElementById('detailRejectionComment').textContent = invoice.rejection_comment;
+      }
+    } else {
+      if (rejectionCommentSection) {
+        rejectionCommentSection.style.display = 'none';
+      }
+    }
+    
     // Populate buyer information
     document.getElementById('detailBuyer').textContent = invoice.buyer_name || '-';
     
@@ -334,7 +363,7 @@ async function showInvoiceDetail(invoiceId, role = 'sme') {
     const markAsPaidBtn = document.getElementById('markAsPaidBtn');
     
     if (submitBtn) {
-      if (role === 'buyer' && invoice.status === 'DRAFT') {
+      if (role === 'buyer' && (invoice.status === 'DRAFT' || invoice.status === 'EDITING')) {
         submitBtn.style.display = 'flex';
         submitBtn.onclick = () => submitInvoice(invoice.id);
         if (buyerInfo) buyerInfo.style.display = 'flex';
@@ -354,11 +383,13 @@ async function showInvoiceDetail(invoiceId, role = 'sme') {
       }
     }
 
-    // Show Edit button for buyer if invoice is DRAFT
+    // Show Edit button for buyer if invoice is DRAFT or EDITING
+    // Show Edit button for SME if invoice is DRAFT or EDITING
     if (editBtn) {
-      if (role === 'buyer' && invoice.status === 'DRAFT') {
+      if ((role === 'buyer' && ['DRAFT', 'EDITING'].includes(invoice.status)) || 
+          (role === 'sme' && ['DRAFT', 'EDITING'].includes(invoice.status))) {
         editBtn.style.display = 'inline-flex';
-        editBtn.onclick = () => openEditModal(invoice);
+        editBtn.onclick = () => openEditModal(invoice, role);
       } else {
         editBtn.style.display = 'none';
       }
@@ -376,19 +407,14 @@ async function showInvoiceDetail(invoiceId, role = 'sme') {
       }
     }
 
-    // Show/Hide Mint NFT button - only for SME if not yet tokenized
+    // Show/Hide Mint NFT button - REMOVED: Only ADMIN can mint NFT (not SME)
+    // Mint NFT button is only available in admin dashboard
     const mintNFTBtn = document.getElementById('mintNFTBtn');
     const nftInfoSection = document.getElementById('nftInfoSection');
     
     if (mintNFTBtn) {
-      if (role === 'sme' && !invoice.token_id) {
-        // Show Mint NFT button if SME and not yet minted
-        mintNFTBtn.style.display = 'inline-flex';
-        // Store invoice ID for mint function
-        window.currentInvoiceIdForMint = invoice.id;
-      } else {
-        mintNFTBtn.style.display = 'none';
-      }
+      // Hide mint button - only admin can mint
+      mintNFTBtn.style.display = 'none';
     }
 
     // Show NFT Info section if tokenized
@@ -486,9 +512,10 @@ function closeInvoiceDetailModal() {
 // Store current editing invoice
 let currentEditingInvoice = null;
 
-// Open edit modal for buyer to edit invoice
-function openEditModal(invoice) {
+// Open edit modal for buyer/SME to edit invoice
+function openEditModal(invoice, role = 'buyer') {
   currentEditingInvoice = invoice;
+  currentEditingInvoice.editRole = role; // Store who is editing
   
   // Populate edit form - Basic Info
   document.getElementById('editInvoiceNumber').textContent = `Invoice #${invoice.invoice_number}`;
@@ -552,8 +579,12 @@ async function saveInvoiceChanges() {
     edit_note: editNote
   };
 
+  // Determine which endpoint to use based on who is editing
+  const editRole = currentEditingInvoice.editRole || 'buyer';
+  const endpoint = editRole === 'sme' ? 'sme-edit' : 'buyer-edit';
+
   try {
-    const response = await fetch(`${API_URL}/api/invoices/${currentEditingInvoice.id}/buyer-edit`, {
+    const response = await fetch(`${API_URL}/api/invoices/${currentEditingInvoice.id}/${endpoint}`, {
       method: 'PUT',
       headers: {
         'Authorization': 'Bearer ' + getToken(),
@@ -568,7 +599,12 @@ async function saveInvoiceChanges() {
     }
 
     const result = await response.json();
-    alert('✅ Cập nhật hóa đơn thành công!\n\nTrạng thái đã chuyển sang EDITING. Nhà cung cấp sẽ xem lại và phải phê duyệt thay đổi của bạn.');
+    
+    const editRole = currentEditingInvoice.editRole || 'buyer';
+    const message = editRole === 'sme' 
+      ? '✅ Cập nhật hóa đơn thành công!\n\nTrạng thái đã chuyển sang EDITING. Buyer sẽ xem lại và phải phê duyệt thay đổi của bạn.'
+      : '✅ Cập nhật hóa đơn thành công!\n\nTrạng thái đã chuyển sang EDITING. Nhà cung cấp sẽ xem lại và phải phê duyệt thay đổi của bạn.';
+    alert(message);
     
     // Close edit modal and reload
     closeEditModal();

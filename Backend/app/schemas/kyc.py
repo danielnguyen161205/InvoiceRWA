@@ -57,6 +57,7 @@ class OrganizationOut(BaseModel):
     authorized_persons_list: Optional[str]
     wallet_address: Optional[str]
     status: OrgStatus
+    rejection_reason: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 

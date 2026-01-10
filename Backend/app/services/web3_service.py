@@ -137,7 +137,7 @@ class Web3Service:
             signed_txn = self.w3.eth.account.sign_transaction(transaction, private_key=self.private_key)
             
             # Send transaction
-            tx_hash = self.w3.eth.send_raw_transaction(signed_txn.rawTransaction)
+            tx_hash = self.w3.eth.send_raw_transaction(signed_txn.raw_transaction)
             print(f"📤 Transaction sent: {tx_hash.hex()}")
             
             # Wait for receipt
@@ -240,6 +240,77 @@ class Web3Service:
                 continue
         
         return None
+
+    def transfer_nft(
+        self,
+        from_address: str,
+        to_address: str,
+        token_id: int
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Transfer NFT from one address to another (admin only)
+        Used when Bank purchases invoice
+        
+        Args:
+            from_address: Current owner (SME)
+            to_address: New owner (Bank)
+            token_id: Token ID to transfer
+            
+        Returns:
+            Transaction receipt
+        """
+        if not self.contract or not self.account:
+            raise Exception("Contract not initialized or no wallet available")
+        
+        try:
+            # Prepare transaction - using transferFrom as contract owner
+            nonce = self.w3.eth.get_transaction_count(self.account.address)
+            
+            # Build transaction
+            transaction = self.contract.functions.transferFrom(
+                Web3.to_checksum_address(from_address),
+                Web3.to_checksum_address(to_address),
+                token_id
+            ).build_transaction({
+                'chainId': self.chain_id,
+                'gas': 200000,
+                'gasPrice': self.w3.eth.gas_price,
+                'nonce': nonce,
+            })
+            
+            # Sign transaction
+            signed_txn = self.w3.eth.account.sign_transaction(transaction, private_key=self.private_key)
+            
+            # Send transaction
+            tx_hash = self.w3.eth.send_raw_transaction(signed_txn.raw_transaction)
+            print(f"📤 NFT Transfer transaction sent: {tx_hash.hex()}")
+            
+            # Wait for receipt
+            tx_receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
+            
+            if tx_receipt['status'] == 1:
+                print(f"✅ NFT transferred successfully from {from_address} to {to_address}")
+                return {
+                    'success': True,
+                    'tx_hash': tx_hash.hex(),
+                    'gas_used': tx_receipt['gasUsed'],
+                    'from': from_address,
+                    'to': to_address,
+                    'token_id': token_id
+                }
+            else:
+                print(f"❌ NFT transfer failed")
+                return {
+                    'success': False,
+                    'error': 'Transaction failed'
+                }
+                
+        except Exception as e:
+            print(f"❌ Error transferring NFT: {str(e)}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
 
 # Singleton instance
 web3_service = Web3Service()

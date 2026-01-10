@@ -37,7 +37,9 @@ const translations = {
             language: 'Language',
             verified: 'Verified',
             pending: 'Pending',
-            rejected: 'Rejected'
+            rejected: 'Rejected',
+            or: 'or',
+            socialMedia: 'Our Social Media'
         },
         vi: {
             loading: 'Đang tải...',
@@ -71,10 +73,12 @@ const translations = {
             language: 'Ngôn ngữ',
             verified: 'Đã xác minh',
             pending: 'Chờ xử lý',
-            rejected: 'Bị từ chối'
+            rejected: 'Bị từ chối',
+            or: 'hoặc',
+            socialMedia: 'Mạng xã hội của chúng tôi'
         }
     },
-    
+
     // Navigation & Menu
     nav: {
         en: {
@@ -98,7 +102,7 @@ const translations = {
             backToDashboard: 'Về Bảng điều khiển'
         }
     },
-    
+
     // Authentication
     auth: {
         en: {
@@ -124,7 +128,8 @@ const translations = {
             smeOrBuyer: 'SME or Buyer (Business User)',
             buyer: 'Buyer',
             bank: 'Bank (Financial Institution)',
-            termsAgree: 'I agree to the Terms and Conditions'
+            termsAgree: 'I agree to the Terms and Conditions',
+            signInToStart: 'Hello Developer, Sign In To Get Started'
         },
         vi: {
             login: 'Đăng nhập',
@@ -149,10 +154,11 @@ const translations = {
             smeOrBuyer: 'SME hoặc Người mua (Doanh nghiệp)',
             buyer: 'Người mua',
             bank: 'Ngân hàng (Tổ chức tài chính)',
-            termsAgree: 'Tôi đồng ý với Điều khoản và Điều kiện'
+            termsAgree: 'Tôi đồng ý với Điều khoản và Điều kiện',
+            signInToStart: 'Xin chào, Đăng nhập để bắt đầu'
         }
     },
-    
+
     // Profile Page
     profile: {
         en: {
@@ -194,7 +200,7 @@ const translations = {
             verifiedAt: 'Xác minh lúc'
         }
     },
-    
+
     // KYC/KYB Verification
     kyc: {
         en: {
@@ -229,11 +235,23 @@ const translations = {
             ubo: 'UBO (Ultimate Beneficial Owners)',
             shareholders: 'Shareholders',
             addShareholder: 'Add Shareholder',
+            shareholderList: 'Shareholder/Contributing Member List',
+            shareholderName: 'Shareholder/Member Name',
+            shareholderType: 'Type',
+            individual: 'Individual',
+            organization: 'Organization',
             ownershipPercent: 'Ownership %',
+            ownershipPercentLabel: 'Ownership %',
+            idNumber: 'ID Number/Tax ID',
+            actions: 'Actions',
+            delete: 'Delete',
+            noShareholders: 'No shareholders yet. Press "Add" to start.',
+            contributingMember: 'Contributing Member',
             submit: 'Submit Verification',
             pending: 'Pending Review',
             approved: 'Approved',
-            rejected: 'Rejected'
+            rejected: 'Rejected',
+            completeVerification: 'Complete KYC Verification'
         },
         vi: {
             title: 'Xác minh KYC/KYB',
@@ -267,14 +285,26 @@ const translations = {
             ubo: 'UBO (Người thụ hưởng cuối cùng)',
             shareholders: 'Cổ đông',
             addShareholder: 'Thêm cổ đông',
+            shareholderList: 'Danh sách cổ đông/thành viên góp vốn',
+            shareholderName: 'Tên cổ động/Thành viên',
+            shareholderType: 'Loại',
+            individual: 'Cá nhân',
+            organization: 'Tổ chức',
             ownershipPercent: 'Tỷ lệ sở hữu %',
+            ownershipPercentLabel: 'Tỷ lệ sở hữu (%)',
+            idNumber: 'Số CCCD/MST',
+            actions: 'Thao tác',
+            delete: 'Xóa',
+            noShareholders: 'Chưa có thông tin cổ đông. Nhấn "Thêm" để bắt đầu.',
+            contributingMember: 'Thành viên góp vốn',
             submit: 'Gửi xác minh',
             pending: 'Đang chờ duyệt',
             approved: 'Đã phê duyệt',
-            rejected: 'Bị từ chối'
+            rejected: 'Bị từ chối',
+            completeVerification: 'Hoàn thành xác minh KYC'
         }
     },
-    
+
     // Invoice
     invoice: {
         en: {
@@ -354,7 +384,7 @@ const translations = {
             funded: 'Đã tài trợ'
         }
     },
-    
+
     // Dashboard
     dashboard: {
         en: {
@@ -378,6 +408,7 @@ const translations = {
             myPortfolio: 'My Portfolio',
             availableForPurchase: 'Available Invoices for Purchase',
             browseDescription: 'Browse and purchase approved invoices from verified SMEs',
+            browseApprovedDescription: 'Browse approved invoices from verified SMEs',
             buyerName: 'Buyer Name',
             issueDate: 'Issue Date',
             paymentTerm: 'Payment Term',
@@ -413,6 +444,7 @@ const translations = {
             myPortfolio: 'Danh mục của tôi',
             availableForPurchase: 'Hóa đơn khả dụng để mua',
             browseDescription: 'Duyệt và mua hóa đơn đã được phê duyệt từ các SME đã xác minh',
+            browseApprovedDescription: 'Duyệt các hóa đơn đã được phê duyệt từ các SME đã xác minh',
             buyerName: 'Tên người mua',
             issueDate: 'Ngày phát hành',
             paymentTerm: 'Kỳ hạn thanh toán',
@@ -459,16 +491,16 @@ function switchLanguage(lang) {
         console.error('Invalid language:', lang);
         return;
     }
-    
+
     currentLanguage = lang;
     localStorage.setItem('preferredLanguage', lang);
-    
+
     // Update all elements with data-i18n attribute
     updatePageTranslations();
-    
+
     // Update language switcher UI
     updateLanguageSwitcher();
-    
+
     // Emit custom event for pages to handle custom translations
     window.dispatchEvent(new CustomEvent('languageChanged', { detail: { language: lang } }));
 }
@@ -478,10 +510,10 @@ function updatePageTranslations() {
     document.querySelectorAll('[data-i18n]').forEach(element => {
         const key = element.getAttribute('data-i18n');
         const [category, translationKey] = key.split('.');
-        
+
         if (category && translationKey) {
             const translation = t(category, translationKey);
-            
+
             // Check if element has data-i18n-attr to update attribute instead of text
             const attr = element.getAttribute('data-i18n-attr');
             if (attr) {
@@ -512,13 +544,13 @@ function initI18n() {
     // Set initial language from localStorage
     const savedLang = localStorage.getItem('preferredLanguage') || 'vi';
     currentLanguage = savedLang;
-    
+
     // Update all translations
     updatePageTranslations();
-    
+
     // Update language switcher
     updateLanguageSwitcher();
-    
+
     // Add click handlers to language switcher buttons
     document.querySelectorAll('.lang-btn').forEach(btn => {
         btn.addEventListener('click', () => {

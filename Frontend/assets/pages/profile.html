@@ -518,23 +518,23 @@
                                         <div>
                                             <div class="flex items-center justify-between mb-3">
                                                 <label class="text-sm font-semibold text-gray-700">
-                                                    <i class="ri-group-line"></i> Danh sách cổ đông/thành viên góp vốn <span class="text-red-600">*</span>
+                                                    <i class="ri-group-line"></i> <span data-i18n="kyc.shareholderList">Danh sách cổ đông/thành viên góp vốn</span> <span class="text-red-600">*</span>
                                                 </label>
                                                 <button type="button" onclick="addShareholder()" class="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center text-sm">
                                                     <i class="ri-add-line mr-1"></i>
-                                                    Thêm
+                                                    <span data-i18n="kyc.addShareholder">Thêm</span>
                                                 </button>
                                             </div>
-                                            
+
                                             <div class="overflow-x-auto">
                                                 <table class="w-full border-collapse border border-gray-300 rounded-lg">
                                                     <thead class="bg-gray-100">
                                                         <tr>
-                                                            <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold">Tên cổ đông/Thành viên</th>
-                                                            <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold">Loại</th>
-                                                            <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold">Tỷ lệ sở hữu (%)</th>
-                                                            <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold">Số CCCD/MST</th>
-                                                            <th class="border border-gray-300 px-4 py-2 text-center text-sm font-semibold">Thao tác</th>
+                                                            <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold" data-i18n="kyc.shareholderName">Tên cổ đông/Thành viên</th>
+                                                            <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold" data-i18n="kyc.shareholderType">Loại</th>
+                                                            <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold" data-i18n="kyc.ownershipPercentLabel">Tỷ lệ sở hữu (%)</th>
+                                                            <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold" data-i18n="kyc.idNumber">Số CCCD/MST</th>
+                                                            <th class="border border-gray-300 px-4 py-2 text-center text-sm font-semibold" data-i18n="kyc.actions">Thao tác</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody id="shareholdersTableBody">
@@ -583,7 +583,7 @@
                             </svg>
                             <h3 class="mt-4 text-lg font-medium text-gray-900">No Organization Found</h3>
                             <p class="mt-2 text-sm text-gray-500">Complete KYC verification to link your organization.</p>
-                            <a href="/pages/kyc-onboard.html" class="mt-4 inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                            <a href="/assets/pages/kyc-onboard.html" class="mt-4 inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
                                 Complete KYC
                             </a>
                         </div>
@@ -967,7 +967,7 @@
         async function loadProfile() {
             const token = getToken ? getToken() : (localStorage.getItem('token') || sessionStorage.getItem('token'));
             if (!token) {
-                window.location.href = '/pages/login.html';
+                window.location.href = '/assets/pages/login.html';
                 return;
             }
 
@@ -991,18 +991,18 @@
                 // User is verified - link to appropriate dashboard
                 backLink.style.display = 'flex';
                 if (roles.includes('ADMIN')) {
-                    backLink.href = '/pages/admin-dashboard.html';
+                    backLink.href = '/assets/pages/admin-dashboard.html';
                 } else if (roles.includes('BANK')) {
-                    backLink.href = '/pages/bank-dashboard.html';
+                    backLink.href = '/assets/pages/bank-dashboard.html';
                 } else if (roles.includes('SME') || roles.includes('BUYER')) {
-                    backLink.href = '/pages/sme-dashboard.html';
+                    backLink.href = '/assets/pages/sme-dashboard.html';
                 }
             } else {
                 // User not verified - still show back button but link to a safe page
                 // or show a message that they need to complete KYC first
                 backLink.style.display = 'flex';
                 // Link to login page for now, user needs to complete KYC
-                backLink.href = '/pages/login.html';
+                backLink.href = '/assets/pages/login.html';
                 // Add a visual indicator that KYC is needed
                 const backSpan = backLink.querySelector('span[data-i18n="nav.backToDashboard"]');
                 if (backSpan) {
@@ -1045,7 +1045,7 @@
         // Logout function
         function logout() {
             localStorage.removeItem('token');
-            window.location.href = '/pages/login.html';
+            window.location.href = '/assets/pages/login.html';
         }
 
         // ========== GLOBAL KYC/UBO DATA ==========
@@ -1229,77 +1229,70 @@
         };
 
         window.renderShareholders = function() {
-            const container = document.getElementById('shareholdersList');
+            const container = document.getElementById('shareholdersTableBody');
             if (!container) return;
+
+            // Get translations
+            const lang = window.i18n ? window.i18n.getCurrentLanguage() : 'vi';
+            const t = (key) => window.i18n ? window.i18n.t('kyc', key) : key;
+            const noShareholdersText = t('noShareholders');
+            const individualText = t('individual');
+            const orgText = t('organization');
+            const deleteText = t('delete');
+            const namePlaceholder = t('shareholderName');
+            const idPlaceholder = t('idNumber');
 
             if (window.shareholdersData.length === 0) {
                 container.innerHTML = `
-                    <div class="text-center py-8 text-gray-500">
-                        <i class="ri-group-line text-4xl mb-2"></i>
-                        <p>Chưa có thông tin cổ đông. Nhấn "Thêm cổ đông" để bắt đầu.</p>
-                    </div>
+                    <tr>
+                        <td colspan="5" class="text-center py-8 text-gray-500">
+                            <i class="ri-group-line text-4xl mb-2 block"></i>
+                            <p>${noShareholdersText}</p>
+                        </td>
+                    </tr>
                 `;
                 return;
             }
 
-            container.innerHTML = window.shareholdersData.map(shareholder => `
-                <div class="bg-white p-4 rounded-lg border border-gray-300 shadow-sm">
-                    <div class="flex items-center justify-between mb-4">
-                        <h4 class="font-semibold text-gray-800 flex items-center">
-                            <i class="ri-user-line mr-2 text-green-600"></i>
-                            Cổ đông #${window.shareholdersData.indexOf(shareholder) + 1}
-                        </h4>
-                        <button onclick="removeShareholder(${shareholder.id})" class="text-red-600 hover:bg-red-50 p-2 rounded transition-colors">
-                            <i class="ri-delete-bin-line"></i>
-                        </button>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="md:col-span-2">
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                <i class="ri-user-line"></i> Tên cổ đông <span class="text-red-600">*</span>
-                            </label>
+            container.innerHTML = window.shareholdersData.map(shareholder => {
+                const typeLabel = shareholder.type === 'INDIVIDUAL' ? individualText : orgText;
+                return `
+                    <tr class="hover:bg-gray-50">
+                        <td class="border border-gray-300 px-4 py-2">
                             <input type="text" value="${shareholder.name}"
                                 onchange="updateShareholder(${shareholder.id}, 'name', this.value)"
-                                placeholder="VD: Công ty ABC hoặc Nguyễn Văn A"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                <i class="ri-building-line"></i> Loại cổ đông
-                            </label>
-                            <select value="${shareholder.type}"
+                                placeholder="${namePlaceholder}"
+                                class="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-green-500">
+                        </td>
+                        <td class="border border-gray-300 px-4 py-2">
+                            <select
                                 onchange="updateShareholder(${shareholder.id}, 'type', this.value)"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
-                                <option value="INDIVIDUAL" ${shareholder.type === 'INDIVIDUAL' ? 'selected' : ''}>Cá nhân</option>
-                                <option value="ORGANIZATION" ${shareholder.type === 'ORGANIZATION' ? 'selected' : ''}>Tổ chức</option>
+                                class="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-green-500">
+                                <option value="INDIVIDUAL" ${shareholder.type === 'INDIVIDUAL' ? 'selected' : ''}>${individualText}</option>
+                                <option value="ORGANIZATION" ${shareholder.type === 'ORGANIZATION' ? 'selected' : ''}>${orgText}</option>
                             </select>
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                <i class="ri-percent-line"></i> Tỷ lệ sở hữu (%) <span class="text-red-600">*</span>
-                            </label>
+                        </td>
+                        <td class="border border-gray-300 px-4 py-2">
                             <input type="number" value="${shareholder.ownership_percent}"
                                 onchange="updateShareholder(${shareholder.id}, 'ownership_percent', this.value)"
-                                placeholder="VD: 51"
+                                placeholder="0"
                                 min="0" max="100" step="0.01"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
-                        </div>
-
-                        <div class="md:col-span-2">
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                <i class="ri-id-card-line"></i> Số giấy tờ (nếu là tổ chức)
-                            </label>
-                            <input type="text" value="${shareholder.id_number}"
+                                class="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-green-500">
+                        </td>
+                        <td class="border border-gray-300 px-4 py-2">
+                            <input type="text" value="${shareholder.id_number || ''}"
                                 onchange="updateShareholder(${shareholder.id}, 'id_number', this.value)"
-                                placeholder="Mã số thuế (nếu là tổ chức)"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
-                        </div>
-                    </div>
-                </div>
-            `).join('');
+                                placeholder="${idPlaceholder}"
+                                class="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-green-500">
+                        </td>
+                        <td class="border border-gray-300 px-4 py-2 text-center">
+                            <button onclick="removeShareholder(${shareholder.id})" class="text-red-600 hover:bg-red-50 p-1 rounded transition-colors">
+                                <i class="ri-delete-bin-line"></i> ${deleteText}
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
         };
 
         // Additional global functions for UBO and document handling
@@ -1511,8 +1504,9 @@
                             contact: p.contact || '',
                             role: p.role || 'LEGAL_REP'
                         }));
-                        window.renderKycPersons();
                     }
+                    // Always render KYC persons list (even if empty)
+                    window.renderKycPersons();
 
                     // Load shareholders
                     if (data.shareholders && data.shareholders.length > 0) {
@@ -1523,8 +1517,9 @@
                             ownership_percent: s.ownership_percent || '',
                             id_number: s.id_number || ''
                         }));
-                        window.renderShareholders();
                     }
+                    // Always render shareholders table (even if empty)
+                    window.renderShareholders();
 
                     // Load UBO listed company info
                     if (data.ubo) {
@@ -1889,13 +1884,18 @@
         document.addEventListener('DOMContentLoaded', () => {
             loadProfile();
             checkWalletConnection();
-            
+
+            // Initialize shareholders table
+            if (window.renderShareholders) {
+                window.renderShareholders();
+            }
+
             // Check if user needs to complete KYC/KYB
             const token = getToken ? getToken() : (localStorage.getItem('token') || sessionStorage.getItem('token'));
             if (token) {
                 const payload = JSON.parse(atob(token.split('.')[1]));
                 const kycVerified = payload.kyc_verified || false;
-                
+
                 // If not verified, show KYC tab by default
                 if (!kycVerified) {
                     switchTab('kyc');

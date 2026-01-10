@@ -156,10 +156,12 @@ function hasAnyRole(roles) {
 
 // Export for non-module scripts
 if (typeof window !== 'undefined') {
+  window.getToken = getToken;
+  window.decodeToken = decodeToken;
+  window.isTokenExpired = isTokenExpired;
+  window.logout = logout;
   window.getCurrentUser = getCurrentUser;
   window.hasRole = hasRole;
   window.hasAnyRole = hasAnyRole;
+  window.requireAuth = requireAuth;
 }
-
-export { getToken, decodeToken, isTokenExpired, logout, getCurrentUser, hasRole, hasAnyRole };
-export default requireAuth;

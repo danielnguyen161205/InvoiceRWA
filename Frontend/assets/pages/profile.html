@@ -951,7 +951,7 @@
 
         // Load profile data
         async function loadProfile() {
-            const token = localStorage.getItem('token');
+            const token = getToken ? getToken() : (localStorage.getItem('token') || sessionStorage.getItem('token'));
             if (!token) {
                 window.location.href = '/pages/login.html';
                 return;
@@ -1473,7 +1473,7 @@
 
         // Load existing KYC/UBO data from API
         window.loadExistingKycUboData = async function() {
-            const token = localStorage.getItem('token');
+            const token = getToken ? getToken() : (localStorage.getItem('token') || sessionStorage.getItem('token'));
             if (!token) return;
 
             try {
@@ -1540,7 +1540,12 @@
 
         // Initialize KYC/KYB Form
         async function initializeKycForm() {
-            const token = localStorage.getItem('token');
+            // Use getToken() to check both sessionStorage and localStorage
+            const token = getToken ? getToken() : (localStorage.getItem('token') || sessionStorage.getItem('token'));
+            if (!token) {
+                console.error('No token found, user not authenticated');
+                return;
+            }
             const payload = JSON.parse(atob(token.split('.')[1]));
             const kycVerified = payload.kyc_verified || false;
             const orgStatus = payload.org_status;
@@ -1872,7 +1877,7 @@
             checkWalletConnection();
             
             // Check if user needs to complete KYC/KYB
-            const token = localStorage.getItem('token');
+            const token = getToken ? getToken() : (localStorage.getItem('token') || sessionStorage.getItem('token'));
             if (token) {
                 const payload = JSON.parse(atob(token.split('.')[1]));
                 const kycVerified = payload.kyc_verified || false;
@@ -1889,7 +1894,7 @@
 
         async function checkWalletConnection() {
             // First, get wallet address from backend (organization)
-            const token = localStorage.getItem('token');
+            const token = getToken ? getToken() : (localStorage.getItem('token') || sessionStorage.getItem('token'));
             if (!token) return;
             
             try {
@@ -1947,7 +1952,7 @@
         }
 
         async function saveWalletToOrganization(walletAddress) {
-            const token = localStorage.getItem('token');
+            const token = getToken ? getToken() : (localStorage.getItem('token') || sessionStorage.getItem('token'));
             if (!token) {
                 throw new Error('Not authenticated');
             }
@@ -1980,7 +1985,7 @@
             }
 
             // Remove from backend
-            const token = localStorage.getItem('token');
+            const token = getToken ? getToken() : (localStorage.getItem('token') || sessionStorage.getItem('token'));
             if (token) {
                 try {
                     const response = await fetch('http://127.0.0.1:8000/api/kyc/organization/wallet', {
@@ -2067,7 +2072,7 @@
             }
 
             try {
-                const token = localStorage.getItem('token');
+                const token = getToken ? getToken() : (localStorage.getItem('token') || sessionStorage.getItem('token'));
                 
                 // Get current organization
                 const orgRes = await fetch(`${API_URL}/api/kyc/organizations/me`, {

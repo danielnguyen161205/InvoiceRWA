@@ -28,19 +28,52 @@ def create_invoice(
     if "SME" not in roles:
         raise HTTPException(status_code=403, detail="Only SME can create invoice")
 
+    # Validate invoice_number
+    if not data.invoice_number or not data.invoice_number.strip():
+        raise HTTPException(status_code=400, detail="Invoice number is required")
+    if len(data.invoice_number) > 100:
+        raise HTTPException(status_code=400, detail="Invoice number too long (max 100 characters)")
+
+    # Validate buyer_name
+    if not data.buyer_name or not data.buyer_name.strip():
+        raise HTTPException(status_code=400, detail="Buyer name is required")
+
     # Validate amount
     if data.amount is None or data.amount <= 0:
         raise HTTPException(status_code=400, detail="Amount must be a positive number")
     if data.amount > 10_000_000_000:  # 10 billion
         raise HTTPException(status_code=400, detail="Amount exceeds maximum allowed (10 billion)")
 
-    # Validate discount_rate
-    if data.discount_rate is not None and data.discount_rate < 0:
-        raise HTTPException(status_code=400, detail="Discount rate cannot be negative")
+    # Validate discount_rate (typically 0-100%)
+    if data.discount_rate is not None:
+        if data.discount_rate < 0:
+            raise HTTPException(status_code=400, detail="Discount rate cannot be negative")
+        if data.discount_rate > 100:
+            raise HTTPException(status_code=400, detail="Discount rate cannot exceed 100%")
 
-    # Validate payment_term
-    if data.payment_term is not None and data.payment_term <= 0:
-        raise HTTPException(status_code=400, detail="Payment term must be positive")
+    # Validate payment_term (in days, max 5 years)
+    if data.payment_term is not None:
+        if data.payment_term <= 0:
+            raise HTTPException(status_code=400, detail="Payment term must be positive")
+        if data.payment_term > 1825:  # 5 years
+            raise HTTPException(status_code=400, detail="Payment term too long (max 5 years)")
+
+    # Validate proposed_ltv (0-100%)
+    if data.proposed_ltv is not None:
+        if data.proposed_ltv < 0:
+            raise HTTPException(status_code=400, detail="Proposed LTV cannot be negative")
+        if data.proposed_ltv > 100:
+            raise HTTPException(status_code=400, detail="Proposed LTV cannot exceed 100%")
+
+    # Validate issue_date (not in the future)
+    if data.issue_date:
+        from datetime import date
+        if data.issue_date > date.today():
+            raise HTTPException(status_code=400, detail="Issue date cannot be in the future")
+
+    # Validate currency
+    if not data.currency or len(data.currency) != 3:
+        raise HTTPException(status_code=400, detail="Currency must be a valid ISO 4217 code (3 letters)")
 
     # Find buyer_id from buyer_org_id
     buyer_user_id = None

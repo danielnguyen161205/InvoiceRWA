@@ -11,10 +11,10 @@ function openDisputeModal() {
     }
 
     // Check if user is buyer
-    const token = localStorage.getItem('token');
+    const token = (sessionStorage.getItem('token') || localStorage.getItem('token'));
     const payload = JSON.parse(atob(token.split('.')[1]));
     const roles = payload.roles || (payload.role ? [payload.role] : []);
-    
+
     if (!roles.includes('BUYER')) {
         alert('❌ Only buyers can dispute invoices');
         return;
@@ -52,7 +52,7 @@ function openDisputeModal() {
         warningMessage.textContent = 'This will immediately block financing for this invoice.';
         evidenceSection.style.display = 'none';
         evidenceSection.querySelector('input').required = false;
-        
+
         impactList.innerHTML = `
             <li>Invoice status will change to <strong>DISPUTED</strong></li>
             <li>Financing will be <strong>blocked immediately</strong></li>
@@ -65,7 +65,7 @@ function openDisputeModal() {
         warningMessage.textContent = 'Bank has already disbursed funds. Evidence is REQUIRED.';
         evidenceSection.style.display = 'block';
         evidenceSection.querySelector('input').required = true;
-        
+
         impactList.innerHTML = `
             <li>Invoice status will change to <strong>DISPUTED</strong></li>
             <li><strong>Case management</strong> will be initiated immediately</li>
@@ -99,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
         fileInput.addEventListener('change', (e) => {
             const filesList = document.getElementById('evidenceFilesList');
             filesList.innerHTML = '';
-            
+
             if (e.target.files.length > 0) {
                 Array.from(e.target.files).forEach((file, index) => {
                     const fileItem = document.createElement('div');
@@ -159,11 +159,11 @@ async function submitDispute() {
     }
 
     try {
-        const token = localStorage.getItem('token');
-        
+        const token = (sessionStorage.getItem('token') || localStorage.getItem('token'));
+
         // Define API_URL if not already defined
         const apiUrl = typeof API_URL !== 'undefined' ? API_URL : 'http://127.0.0.1:8000';
-        
+
         console.log('🔍 Submitting dispute for invoice:', invoice.id);
         console.log('🔍 API URL:', apiUrl);
 
@@ -173,7 +173,7 @@ async function submitDispute() {
             description: description.trim(),
             invoice_status: invoice.status
         };
-        
+
         console.log('📤 Dispute data:', disputeData);
 
         // Step 1: Submit dispute to backend
@@ -223,7 +223,7 @@ async function submitDispute() {
         // Close modal and refresh
         closeDisputeModal();
         closeInvoiceDetailModal();
-        
+
         // Refresh invoice list
         if (typeof loadInvoices === 'function') {
             loadInvoices();

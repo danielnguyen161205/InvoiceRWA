@@ -13,7 +13,7 @@ from app.storage import save_file
 from app.core.security import get_current_user
 from app.storage import generate_presigned_url
 from app.models.audit import AuditLog, OrganizationReview
-from datetime import datetime, timezone
+from datetime import datetime as dt_datetime, timezone
 
 
 def audit_log(db: Session, actor_sub: str, actor_roles: str, action: str, target_type: str, target_id: str = None, comments: str = None):
@@ -518,43 +518,55 @@ def resubmit_for_review(org_id: int, db: Session = Depends(get_db), user: dict =
 
 @router.post("/organizations/{org_id}/review")
 def review_org(org_id: int, action: ReviewAction, db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
-    org = db.query(Organization).filter(Organization.id == org_id).first()
-    if not org:
-        raise HTTPException(status_code=404, detail="Organization not found")
+    import logging
+    logger = logging.getLogger(__name__)
 
-    reviewer_sub = user.get('sub')
-    reviewer_roles = ','.join(user.get('roles', [])) if user.get('roles') else None
-
-    # Only allow review if status is PENDING
-    if org.status != OrgStatus.PENDING:
-        return {"status": org.status, "message": "Organization already reviewed"}
-
-    # Create review record
-    rev = OrganizationReview(org_id=org_id, reviewer_sub=reviewer_sub, action=action.action, comments=action.comments)
-    db.add(rev)
-
-    # Update status directly based on action
-    if action.action == "APPROVE":
-        org.status = OrgStatus.APPROVED
-        org.rejection_reason = None  # Clear any previous rejection reason
-        # Set verified_at timestamp when approved
-        import datetime
-        org.verified_at = datetime.now(timezone.utc)
-        org.verified_by = int(reviewer_sub)  # Store who approved it
-    else:
-        org.status = OrgStatus.REJECTED
-        # Save rejection comments so user can see why they were rejected
-        org.rejection_reason = action.comments if action.comments else "Your application was rejected. Please review and resubmit."
-
-    db.add(org)
-    db.commit()
-    
     try:
-        audit_log(db, reviewer_sub, reviewer_roles, f'REVIEW_{action.action}', 'organization', str(org.id), action.comments)
-    except Exception:
-        pass
-    
-    return {"status": org.status}
+        org = db.query(Organization).filter(Organization.id == org_id).first()
+        if not org:
+            raise HTTPException(status_code=404, detail="Organization not found")
+
+        reviewer_sub = user.get('sub')
+        reviewer_roles = ','.join(user.get('roles', [])) if user.get('roles') else None
+
+        logger.info(f"Reviewing org {org_id}, action: {action.action}, current status: {org.status}")
+
+        # Only allow review if status is PENDING
+        if org.status != OrgStatus.PENDING:
+            return {"status": org.status, "message": "Organization already reviewed"}
+
+        # Create review record
+        rev = OrganizationReview(org_id=org_id, reviewer_sub=reviewer_sub, action=action.action, comments=action.comments)
+        db.add(rev)
+
+        # Update status directly based on action
+        if action.action == "APPROVE":
+            org.status = OrgStatus.APPROVED
+            org.rejection_reason = None  # Clear any previous rejection reason
+            # Set verified_at timestamp when approved
+            org.verified_at = dt_datetime.now(timezone.utc)
+            org.verified_by = int(reviewer_sub)  # Store who approved it
+        else:
+            org.status = OrgStatus.REJECTED
+            # Save rejection comments so user can see why they were rejected
+            org.rejection_reason = action.comments if action.comments else "Your application was rejected. Please review and resubmit."
+
+        db.add(org)
+        db.commit()
+
+        try:
+            audit_log(db, reviewer_sub, reviewer_roles, f'REVIEW_{action.action}', 'organization', str(org.id), action.comments)
+        except Exception as e:
+            logger.error(f"Audit log failed: {e}")
+
+        return {"status": org.status}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error reviewing organization: {e}", exc_info=True)
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to review organization: {str(e)}")
 
 
 @router.get('/documents/{doc_id}/download')

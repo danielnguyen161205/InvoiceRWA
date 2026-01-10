@@ -11,7 +11,7 @@ const API_URL = window.CONFIG ? window.CONFIG.API_BASE_URL : "http://127.0.0.1:8
  */
 async function checkInvoiceTokenization(invoiceId) {
     try {
-        const token = localStorage.getItem('access_token');
+        const token = (sessionStorage.getItem('token') || localStorage.getItem('token') || sessionStorage.getItem('access_token') || localStorage.getItem('access_token'));
         if (!token) return null;
 
         const response = await fetch(`${API_URL}/api/blockchain/token/${invoiceId}`, {
@@ -19,15 +19,15 @@ async function checkInvoiceTokenization(invoiceId) {
                 'Authorization': `Bearer ${token}`
             }
         });
-        
+
         if (!response.ok) {
             console.error('Failed to check tokenization status');
             return null;
         }
-        
+
         const data = await response.json();
         return data;
-        
+
     } catch (error) {
         console.error('Error checking tokenization:', error);
         return null;
@@ -39,16 +39,16 @@ async function checkInvoiceTokenization(invoiceId) {
  */
 async function mintInvoiceNFT(invoiceId) {
     const confirmMsg = 'Bạn có chắc muốn token hóa hóa đơn này lên blockchain?\n\n' +
-                      'Sau khi token hóa:\n' +
-                      '- Hóa đơn sẽ được chuyển thành NFT\n' +
-                      '- Quyền sở hữu được ghi nhận trên blockchain\n' +
-                      '- Có thể giao dịch và chuyển nhượng\n' +
-                      '- Cần phí gas để thực hiện giao dịch';
-    
+        'Sau khi token hóa:\n' +
+        '- Hóa đơn sẽ được chuyển thành NFT\n' +
+        '- Quyền sở hữu được ghi nhận trên blockchain\n' +
+        '- Có thể giao dịch và chuyển nhượng\n' +
+        '- Cần phí gas để thực hiện giao dịch';
+
     if (!confirm(confirmMsg)) {
         return;
     }
-    
+
     // Show loading
     const loadingDiv = document.createElement('div');
     loadingDiv.id = 'nft-minting-loading';
@@ -65,31 +65,31 @@ async function mintInvoiceNFT(invoiceId) {
         </div>
     `;
     document.body.appendChild(loadingDiv);
-    
+
     try {
-        const token = localStorage.getItem('access_token');
+        const token = (sessionStorage.getItem('token') || localStorage.getItem('token') || sessionStorage.getItem('access_token') || localStorage.getItem('access_token'));
         if (!token) {
             alert('Vui lòng đăng nhập!');
             return;
         }
-        
-        const response = await fetch(`http://localhost:8000/api/blockchain/mint/${invoiceId}`, {
+
+        const response = await fetch(`${API_URL}/api/blockchain/mint/${invoiceId}`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             }
         });
-        
+
         const result = await response.json();
-        
+
         // Remove loading
         document.body.removeChild(loadingDiv);
-        
+
         if (response.ok && result.success) {
             // Show success modal
             showNFTSuccessModal(result);
-            
+
             // Refresh invoice list if function exists
             if (typeof loadInvoices === 'function') {
                 loadInvoices();
@@ -97,13 +97,13 @@ async function mintInvoiceNFT(invoiceId) {
         } else {
             alert(`Lỗi: ${result.detail || 'Không thể token hóa hóa đơn'}`);
         }
-        
+
     } catch (error) {
         // Remove loading
         if (document.getElementById('nft-minting-loading')) {
             document.body.removeChild(loadingDiv);
         }
-        
+
         console.error('Error minting NFT:', error);
         alert('Lỗi khi token hóa hóa đơn. Vui lòng thử lại.');
     }
@@ -165,7 +165,7 @@ function showNFTSuccessModal(result) {
             </div>
         </div>
     `;
-    
+
     document.body.appendChild(modal);
 }
 
@@ -174,7 +174,7 @@ function showNFTSuccessModal(result) {
  */
 function addNFTBadgeToInvoice(invoiceElement, tokenData) {
     if (!tokenData || !tokenData.tokenized) return;
-    
+
     // Create badge
     const badge = document.createElement('div');
     badge.className = 'inline-flex items-center space-x-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3 py-1 rounded-full text-xs font-semibold';
@@ -184,11 +184,11 @@ function addNFTBadgeToInvoice(invoiceElement, tokenData) {
         </svg>
         <span>NFT #${tokenData.token_id}</span>
     `;
-    
+
     // Add click handler to view details
     badge.style.cursor = 'pointer';
     badge.onclick = () => showNFTDetailsModal(tokenData);
-    
+
     // Find status element and insert badge
     const statusElement = invoiceElement.querySelector('.invoice-status');
     if (statusElement) {
@@ -202,9 +202,9 @@ function addNFTBadgeToInvoice(invoiceElement, tokenData) {
 function showNFTDetailsModal(tokenData) {
     const modal = document.createElement('div');
     modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
-    
+
     const blockchainData = tokenData.blockchain_data || {};
-    
+
     modal.innerHTML = `
         <div class="bg-white p-8 rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-start mb-6">
@@ -283,7 +283,7 @@ function showNFTDetailsModal(tokenData) {
             </div>
         </div>
     `;
-    
+
     document.body.appendChild(modal);
 }
 
@@ -292,11 +292,11 @@ function showNFTDetailsModal(tokenData) {
  */
 async function initializeNFTStatus() {
     const invoiceCards = document.querySelectorAll('[data-invoice-id]');
-    
+
     for (const card of invoiceCards) {
         const invoiceId = card.dataset.invoiceId;
         if (!invoiceId) continue;
-        
+
         const tokenData = await checkInvoiceTokenization(invoiceId);
         if (tokenData && tokenData.tokenized) {
             addNFTBadgeToInvoice(card, tokenData);

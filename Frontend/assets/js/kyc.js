@@ -4,7 +4,7 @@ const API = API_URL + '/api/kyc';
 
 // Check if user already has an organization
 async function checkExistingOrganization() {
-  const token = localStorage.getItem('token');
+  const token = (sessionStorage.getItem('token') || localStorage.getItem('token'));
   if (!token) {
     window.location.href = '/pages/login.html';
     return null;
@@ -28,7 +28,7 @@ async function checkExistingOrganization() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  const token = localStorage.getItem('token');
+  const token = (sessionStorage.getItem('token') || localStorage.getItem('token'));
   if (!token) {
     window.location.href = '/pages/login.html';
     return;
@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('orgArea').style.display = 'block';
     document.getElementById('orgId').innerText = existingOrg.id;
     window._currentOrg = existingOrg;
-    
+
     // Show status
     const statusDiv = document.createElement('div');
     statusDiv.className = 'p-4 mb-4 rounded-lg';
@@ -63,8 +63,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 document.getElementById('orgForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  
-  const token = localStorage.getItem('token');
+
+  const token = (sessionStorage.getItem('token') || localStorage.getItem('token'));
   const payload = {
     legal_name: document.getElementById('legal_name').value,
     trade_name: document.getElementById('trade_name').value,
@@ -101,9 +101,9 @@ document.getElementById('uploadBtn').addEventListener('click', async () => {
   form.append('file', file);
   form.append('uploaded_by', 'frontend_user');
 
-  const token = localStorage.getItem('token');
+  const token = (sessionStorage.getItem('token') || localStorage.getItem('token'));
   const orgId = window._currentOrg.id;
-  const res = await fetch(`http://127.0.0.1:8000/api/kyc/organizations/${orgId}/upload`, {
+  const res = await fetch(`${API_URL}/api/kyc/organizations/${orgId}/upload`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`
@@ -122,9 +122,9 @@ document.getElementById('uploadBtn').addEventListener('click', async () => {
 });
 
 document.getElementById('submitReview').addEventListener('click', async () => {
-  const token = localStorage.getItem('token');
+  const token = (sessionStorage.getItem('token') || localStorage.getItem('token'));
   const orgId = window._currentOrg.id;
-  const res = await fetch(`http://127.0.0.1:8000/api/kyc/organizations/${orgId}/submit`, {
+  const res = await fetch(`${API_URL}/api/kyc/organizations/${orgId}/submit`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`

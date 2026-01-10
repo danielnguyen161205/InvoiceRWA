@@ -5,11 +5,11 @@ requireAuth();
 let currentOrgId = null;
 
 // Check if user has ADMIN role
-const token = localStorage.getItem('token');
+const token = (sessionStorage.getItem('token') || localStorage.getItem('token'));
 if (token) {
     const payload = JSON.parse(atob(token.split('.')[1]));
     const roles = payload.roles || (payload.role ? [payload.role] : []);
-    
+
     if (!roles.includes('ADMIN')) {
         alert('Access denied. Admin privileges required.');
         window.location.href = '/pages/login.html';
@@ -27,24 +27,24 @@ document.addEventListener('DOMContentLoaded', () => {
 // Load statistics
 async function loadStats() {
     try {
-        const token = localStorage.getItem('token');
-        
+        const token = (sessionStorage.getItem('token') || localStorage.getItem('token'));
+
         // Get all organizations
         const orgsRes = await fetch(`${API_URL}/api/kyc/organizations/all`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        
+
         if (orgsRes.ok) {
             const orgs = await orgsRes.json();
             const pending = orgs.filter(o => o.status === 'PENDING').length;
             const review = orgs.filter(o => o.status === 'UNDER_REVIEW').length;
             const approved = orgs.filter(o => o.status === 'APPROVED').length;
-            
+
             document.getElementById('pendingOrgsCount').innerText = pending;
             document.getElementById('reviewOrgsCount').innerText = review;
             document.getElementById('approvedOrgsCount').innerText = approved;
         }
-        
+
         // Get all invoices
         // FIXED: Handle new pagination response format {data: [...], pagination: {...}}
         const invoicesRes = await fetch(`${API_URL}/api/invoices`, {
@@ -56,7 +56,7 @@ async function loadStats() {
             const invoices = response.data || response; // Handle both new and old format
             document.getElementById('totalInvoicesCount').innerText = invoices.length;
         }
-        
+
     } catch (error) {
         console.error('Error loading stats:', error);
     }
@@ -66,31 +66,31 @@ async function loadStats() {
 async function loadOrganizations() {
     console.log('Loading organizations...');
     try {
-        const token = localStorage.getItem('token');
+        const token = (sessionStorage.getItem('token') || localStorage.getItem('token'));
         const statusFilter = document.getElementById('orgStatusFilter').value;
-        
+
         console.log('Fetching from:', `${API_URL}/api/kyc/organizations/all`);
         const res = await fetch(`${API_URL}/api/kyc/organizations/all`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        
+
         console.log('Response status:', res.status);
-        
+
         if (!res.ok) {
             const errorText = await res.text();
             console.error('Error response:', errorText);
             throw new Error('Failed to load organizations');
         }
-        
+
         const organizations = await res.json();
         console.log('Loaded organizations:', organizations);
         const tbody = document.getElementById('organizationsTableBody');
-        
+
         // Filter by status
-        const filtered = statusFilter === 'ALL' 
-            ? organizations 
+        const filtered = statusFilter === 'ALL'
+            ? organizations
             : organizations.filter(o => o.status === statusFilter);
-        
+
         if (filtered.length === 0) {
             tbody.innerHTML = `
                 <tr>
@@ -102,12 +102,12 @@ async function loadOrganizations() {
             `;
             return;
         }
-        
+
         tbody.innerHTML = filtered.map(org => {
             let statusClass = '';
             let statusIcon = '';
-            
-            switch(org.status) {
+
+            switch (org.status) {
                 case 'PENDING':
                     statusClass = 'bg-blue-100 text-blue-700';
                     statusIcon = 'ri-time-line';
@@ -125,10 +125,10 @@ async function loadOrganizations() {
                     statusIcon = 'ri-close-circle-line';
                     break;
             }
-            
+
             const created = org.created_at ? new Date(org.created_at).toLocaleDateString() : 'N/A';
             const canReview = org.status === 'PENDING' || org.status === 'UNDER_REVIEW';
-            
+
             return `
                 <tr class="hover:bg-gray-50 transition-colors">
                     <td class="px-4 py-3 text-sm font-medium text-gray-900">#${org.id}</td>
@@ -158,7 +158,7 @@ async function loadOrganizations() {
                 </tr>
             `;
         }).join('');
-        
+
     } catch (error) {
         console.error('Error loading organizations:', error);
         const tbody = document.getElementById('organizationsTableBody');
@@ -177,31 +177,31 @@ async function loadOrganizations() {
 async function loadInvoices() {
     console.log('Loading invoices...');
     try {
-        const token = localStorage.getItem('token');
+        const token = (sessionStorage.getItem('token') || localStorage.getItem('token'));
         const statusFilter = document.getElementById('invoiceStatusFilter').value;
-        
+
         console.log('Fetching from:', `${API_URL}/api/invoices/admin/all`);
         const res = await fetch(`${API_URL}/api/invoices/admin/all`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        
+
         console.log('Invoice response status:', res.status);
-        
+
         if (!res.ok) {
             const errorText = await res.text();
             console.error('Invoice error response:', errorText);
             throw new Error('Failed to load invoices');
         }
-        
+
         const invoices = await res.json();
         console.log('Loaded invoices:', invoices);
         const tbody = document.getElementById('invoicesTableBody');
-        
+
         // Filter by status
-        const filtered = statusFilter === 'ALL' 
-            ? invoices 
+        const filtered = statusFilter === 'ALL'
+            ? invoices
             : invoices.filter(i => i.status === statusFilter);
-        
+
         if (filtered.length === 0) {
             tbody.innerHTML = `
                 <tr>
@@ -213,12 +213,12 @@ async function loadInvoices() {
             `;
             return;
         }
-        
+
         tbody.innerHTML = filtered.map(inv => {
             let statusClass = '';
             let statusIcon = '';
-            
-            switch(inv.status) {
+
+            switch (inv.status) {
                 case 'DRAFT':
                     statusClass = 'bg-gray-100 text-gray-700';
                     statusIcon = 'ri-draft-line';
@@ -247,12 +247,12 @@ async function loadInvoices() {
                     statusClass = 'bg-gray-100 text-gray-700';
                     statusIcon = 'ri-question-line';
             }
-            
+
             const created = inv.created_at ? new Date(inv.created_at).toLocaleDateString() : 'N/A';
             const issueDate = inv.issue_date ? new Date(inv.issue_date).toLocaleDateString() : 'N/A';
             const amount = inv.amount ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(inv.amount) : 'N/A';
             const canApprove = inv.status === 'SUBMITTED';
-            
+
             return `
                 <tr class="hover:bg-gray-50 transition-colors">
                     <td class="px-4 py-3">
@@ -261,17 +261,17 @@ async function loadInvoices() {
                     </td>
                     <td class="px-4 py-3">
                         <div class="text-sm font-medium text-gray-900">${inv.seller_name || 'Chưa có tên'}</div>
-                        ${inv.sme_org_id ? 
-                            `<div class="text-xs text-indigo-600 font-medium">🏢 Org #${inv.sme_org_id}</div>` : 
-                            `<div class="text-xs text-red-600 font-semibold">⚠️ Thiếu Org ID</div>`
-                        }
+                        ${inv.sme_org_id ?
+                    `<div class="text-xs text-indigo-600 font-medium">🏢 Org #${inv.sme_org_id}</div>` :
+                    `<div class="text-xs text-red-600 font-semibold">⚠️ Thiếu Org ID</div>`
+                }
                     </td>
                     <td class="px-4 py-3">
                         <div class="text-sm font-medium text-gray-900">${inv.buyer_name || 'Chưa có tên'}</div>
-                        ${inv.buyer_org_id ? 
-                            `<div class="text-xs text-indigo-600 font-medium">🏢 Org #${inv.buyer_org_id}</div>` : 
-                            `<div class="text-xs text-red-600 font-semibold">⚠️ Thiếu Org ID</div>`
-                        }
+                        ${inv.buyer_org_id ?
+                    `<div class="text-xs text-indigo-600 font-medium">🏢 Org #${inv.buyer_org_id}</div>` :
+                    `<div class="text-xs text-red-600 font-semibold">⚠️ Thiếu Org ID</div>`
+                }
                     </td>
                     <td class="px-4 py-3 text-sm font-semibold text-green-600">${amount}</td>
                     <td class="px-4 py-3">
@@ -339,7 +339,7 @@ async function loadInvoices() {
                 </tr>
             `;
         }).join('');
-        
+
     } catch (error) {
         console.error('Error loading invoices:', error);
         const tbody = document.getElementById('invoicesTableBody');
@@ -359,25 +359,25 @@ async function openOrgReviewModal(orgId) {
     currentOrgId = orgId;
     const modal = document.getElementById('orgReviewModal');
     const content = document.getElementById('orgReviewContent');
-    
+
     modal.classList.remove('hidden');
     modal.classList.add('flex');
-    
+
     // Show loading state
     content.innerHTML = `
         <div class="flex justify-center items-center py-12">
             <i class="ri-loader-4-line text-4xl text-indigo-600 animate-spin"></i>
         </div>
     `;
-    
+
     try {
-        const token = localStorage.getItem('token');
+        const token = (sessionStorage.getItem('token') || localStorage.getItem('token'));
         const res = await fetch(`${API_URL}/api/kyc/organizations/${orgId}/comprehensive`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        
+
         if (!res.ok) throw new Error('Failed to load organization');
-        
+
         const data = await res.json();
         const org = data.organization;
         const user = data.user;
@@ -385,11 +385,11 @@ async function openOrgReviewModal(orgId) {
         const shareholders = data.shareholders || [];
         const ubo = data.ubo;
         const documents = data.documents || [];
-        
+
         const canReview = org.status === 'PENDING' || org.status === 'UNDER_REVIEW';
-        
+
         let statusBadgeClass = '';
-        switch(org.status) {
+        switch (org.status) {
             case 'PENDING':
                 statusBadgeClass = 'bg-blue-100 text-blue-700';
                 break;
@@ -403,7 +403,7 @@ async function openOrgReviewModal(orgId) {
                 statusBadgeClass = 'bg-red-100 text-red-700';
                 break;
         }
-        
+
         // Build comprehensive content
         content.innerHTML = `
             <!-- Organization Header -->
@@ -584,12 +584,12 @@ async function openOrgReviewModal(orgId) {
                         <div>
                             <label class="text-xs font-semibold text-gray-600 uppercase">Listed Status</label>
                             <p class="text-gray-800">
-                                ${ubo.is_listed ? 
-                                    `<span class="inline-flex items-center px-3 py-1 bg-green-100 text-green-700 rounded-full font-medium">
+                                ${ubo.is_listed ?
+                    `<span class="inline-flex items-center px-3 py-1 bg-green-100 text-green-700 rounded-full font-medium">
                                         <i class="ri-stock-line mr-1"></i> Listed
-                                    </span>` : 
-                                    '<span class="px-3 py-1 bg-gray-200 text-gray-700 rounded-full">Not Listed</span>'
-                                }
+                                    </span>` :
+                    '<span class="px-3 py-1 bg-gray-200 text-gray-700 rounded-full">Not Listed</span>'
+                }
                             </p>
                         </div>
                         ${ubo.is_listed && ubo.stock_exchange ? `
@@ -719,7 +719,7 @@ async function openOrgReviewModal(orgId) {
                 </div>
             </div>
         `;
-        
+
         // Show/hide review buttons based on status
         const reviewButtons = document.querySelector('#orgReviewModal .sticky.bottom-0');
         if (!canReview) {
@@ -734,7 +734,7 @@ async function openOrgReviewModal(orgId) {
             reviewButtons.querySelectorAll('button')[0].style.display = 'flex'; // Approve
             reviewButtons.querySelectorAll('button')[1].style.display = 'flex'; // Reject
         }
-        
+
     } catch (error) {
         console.error('Error loading organization:', error);
         content.innerHTML = `
@@ -784,7 +784,7 @@ async function reviewOrganization(action) {
     }
 
     try {
-        const token = localStorage.getItem('token');
+        const token = (sessionStorage.getItem('token') || localStorage.getItem('token'));
         const res = await fetch(`${API_URL}/api/kyc/organizations/${currentOrgId}/review`, {
             method: 'POST',
             headers: {
@@ -842,26 +842,26 @@ let currentInvoice = null;
 
 async function viewInvoiceDetail(invoiceId) {
     try {
-        const token = localStorage.getItem('token');
+        const token = (sessionStorage.getItem('token') || localStorage.getItem('token'));
         const res = await fetch(`${API_URL}/api/invoices/${invoiceId}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        
+
         if (!res.ok) throw new Error('Failed to load invoice');
-        
+
         const inv = await res.json();
         currentInvoice = inv;
-        
+
         const modal = document.getElementById('invoiceDetailModal');
         const content = document.getElementById('invoiceDetailContent');
-        
+
         const amount = inv.amount ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(inv.amount) : 'N/A';
         const issueDate = inv.issue_date ? new Date(inv.issue_date).toLocaleDateString() : 'N/A';
         const created = inv.created_at ? new Date(inv.created_at).toLocaleDateString() : 'N/A';
-        
+
         // Status badge
         let statusClass = '';
-        switch(inv.status) {
+        switch (inv.status) {
             case 'DRAFT': statusClass = 'bg-gray-100 text-gray-700'; break;
             case 'EDITING': statusClass = 'bg-orange-100 text-orange-700'; break;
             case 'SUBMITTED': statusClass = 'bg-yellow-100 text-yellow-700'; break;
@@ -869,7 +869,7 @@ async function viewInvoiceDetail(invoiceId) {
             case 'DISPUTED': statusClass = 'bg-red-100 text-red-700'; break;
             case 'REJECTED': statusClass = 'bg-red-100 text-red-700'; break;
         }
-        
+
         content.innerHTML = `
             <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg mb-4">
                 <div class="flex justify-between items-center">
@@ -983,17 +983,17 @@ async function viewInvoiceDetail(invoiceId) {
                 
             ` : ''}
         `;
-        
+
         // Load organizations into dropdowns
         await loadOrganizationsForInvoice(inv.sme_org_id, inv.buyer_org_id);
-        
+
         // Show/hide edit button - Admin can always edit to fix org IDs
         const editBtn = document.getElementById('invoiceEditBtn');
         editBtn.classList.remove('hidden');
-        
+
         modal.classList.remove('hidden');
         modal.classList.add('flex');
-        
+
     } catch (error) {
         console.error('Error loading invoice:', error);
         alert('Error loading invoice details');
@@ -1002,34 +1002,34 @@ async function viewInvoiceDetail(invoiceId) {
 
 async function loadOrganizationsForInvoice(currentSmeOrgId, currentBuyerOrgId) {
     try {
-        const token = localStorage.getItem('token');
+        const token = (sessionStorage.getItem('token') || localStorage.getItem('token'));
         const res = await fetch(`${API_URL}/api/kyc/organizations/all`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        
+
         if (!res.ok) return;
-        
+
         const organizations = await res.json();
         const approvedOrgs = organizations.filter(o => o.status === 'APPROVED');
-        
+
         // Populate SME org dropdown
         const smeSelect = document.getElementById('edit_sme_org_id');
         smeSelect.innerHTML = '<option value="">-- Chọn SME Organization --</option>' +
-            approvedOrgs.map(org => 
+            approvedOrgs.map(org =>
                 `<option value="${org.id}" ${org.id === currentSmeOrgId ? 'selected' : ''}>
                     ${org.legal_name || org.trade_name} (ID: ${org.id})
                 </option>`
             ).join('');
-        
+
         // Populate Buyer org dropdown  
         const buyerSelect = document.getElementById('edit_buyer_org_id');
         buyerSelect.innerHTML = '<option value="">-- Chọn Buyer Organization --</option>' +
-            approvedOrgs.map(org => 
+            approvedOrgs.map(org =>
                 `<option value="${org.id}" ${org.id === currentBuyerOrgId ? 'selected' : ''}>
                     ${org.legal_name || org.trade_name} (ID: ${org.id})
                 </option>`
             ).join('');
-            
+
     } catch (error) {
         console.error('Error loading organizations:', error);
     }
@@ -1051,17 +1051,17 @@ function enableInvoiceEdit() {
     document.getElementById('edit_payment_term').removeAttribute('readonly');
     document.getElementById('edit_ltv').removeAttribute('readonly');
     document.getElementById('edit_discount').removeAttribute('readonly');
-    
+
     // Enable organization dropdowns
     document.getElementById('edit_sme_org_id').removeAttribute('disabled');
     document.getElementById('edit_buyer_org_id').removeAttribute('disabled');
-    
+
     // Change border color to indicate edit mode
     document.querySelectorAll('#invoiceDetailContent input, #invoiceDetailContent select').forEach(input => {
         input.classList.remove('bg-gray-50', 'border-gray-200');
         input.classList.add('bg-white', 'border-indigo-300');
     });
-    
+
     // Show save button, hide edit button
     document.getElementById('invoiceEditBtn').classList.add('hidden');
     document.getElementById('invoiceSaveBtn').classList.remove('hidden');
@@ -1069,15 +1069,15 @@ function enableInvoiceEdit() {
 
 async function saveInvoiceEdit() {
     if (!currentInvoice) return;
-    
+
     const editNote = prompt('Nhập ghi chú về những gì bạn đã thay đổi:');
     if (!editNote) return;
-    
+
     try {
-        const token = localStorage.getItem('token');
+        const token = (sessionStorage.getItem('token') || localStorage.getItem('token'));
         const smeOrgId = document.getElementById('edit_sme_org_id').value;
         const buyerOrgId = document.getElementById('edit_buyer_org_id').value;
-        
+
         const updateData = {
             amount: parseFloat(document.getElementById('edit_amount').value),
             issue_date: document.getElementById('edit_issue_date').value,
@@ -1090,7 +1090,7 @@ async function saveInvoiceEdit() {
             buyer_org_id: buyerOrgId ? parseInt(buyerOrgId) : null,
             edit_note: editNote
         };
-        
+
         const res = await fetch(`${API_URL}/api/invoices/${currentInvoice.id}/admin-edit`, {
             method: 'PUT',
             headers: {
@@ -1099,18 +1099,18 @@ async function saveInvoiceEdit() {
             },
             body: JSON.stringify(updateData)
         });
-        
+
         if (!res.ok) {
             const error = await res.json();
             throw new Error(error.detail || 'Không thể cập nhật invoice');
         }
-        
+
         const result = await res.json();
         alert(`✅ Cập nhật thành công!\n\n${editNote}`);
-        
+
         closeInvoiceModal();
         loadInvoices(); // Reload list
-        
+
     } catch (error) {
         console.error('Error saving invoice:', error);
         alert('Error saving invoice: ' + error.message);
@@ -1120,9 +1120,9 @@ async function saveInvoiceEdit() {
 // Approve invoice
 async function approveInvoice(invoiceId) {
     if (!confirm('Are you sure you want to approve this invoice?')) return;
-    
+
     try {
-        const token = localStorage.getItem('token');
+        const token = (sessionStorage.getItem('token') || localStorage.getItem('token'));
         const res = await fetch(`${API_URL}/api/invoices/${invoiceId}/decision`, {
             method: 'POST',
             headers: {
@@ -1131,16 +1131,16 @@ async function approveInvoice(invoiceId) {
             },
             body: JSON.stringify({ decision: 'APPROVED' })
         });
-        
+
         if (!res.ok) {
             const error = await res.text();
             throw new Error(error);
         }
-        
+
         alert('Invoice approved successfully!');
         loadInvoices();
         loadStats();
-        
+
     } catch (error) {
         console.error('Error approving invoice:', error);
         alert('Error: ' + error.message);
@@ -1150,40 +1150,40 @@ async function approveInvoice(invoiceId) {
 // Reject invoice with comment
 async function rejectInvoice(invoiceId) {
     const comment = prompt('Please enter rejection reason (this will be sent to both SME and Buyer):');
-    
+
     if (!comment || comment.trim() === '') {
         alert('Rejection reason is required!');
         return;
     }
-    
+
     if (!confirm(`Are you sure you want to reject this invoice?\n\nReason: ${comment}\n\nBoth SME and Buyer will be notified.`)) {
         return;
     }
-    
+
     try {
-        const token = localStorage.getItem('token');
+        const token = (sessionStorage.getItem('token') || localStorage.getItem('token'));
         const res = await fetch(`${API_URL}/api/invoices/${invoiceId}/decision`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify({ 
+            body: JSON.stringify({
                 decision: 'REJECTED',
                 comment: comment.trim()
             })
         });
-        
+
         if (!res.ok) {
             const error = await res.text();
             throw new Error(error);
         }
-        
+
         const result = await res.json();
         alert(`✓ ${result.message}\n\nRejection reason has been sent to both SME and Buyer.`);
         loadInvoices();
         loadStats();
-        
+
     } catch (error) {
         console.error('Error rejecting invoice:', error);
         alert('Error: ' + error.message);
@@ -1221,7 +1221,7 @@ async function mintInvoiceNFT(invoiceId) {
     document.body.appendChild(modal);
 
     try {
-        const token = localStorage.getItem('token');
+        const token = (sessionStorage.getItem('token') || localStorage.getItem('token'));
         const res = await fetch(`${API_URL}/api/blockchain/mint/${invoiceId}`, {
             method: 'POST',
             headers: {
@@ -1367,24 +1367,24 @@ async function mintInvoiceNFT(invoiceId) {
 // Check for duplicate wallet addresses
 async function checkDuplicateWallets() {
     try {
-        const token = localStorage.getItem('token');
+        const token = (sessionStorage.getItem('token') || localStorage.getItem('token'));
         const res = await fetch(`${API_URL}/api/kyc/admin/wallets-check`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        
+
         if (!res.ok) {
             throw new Error('Failed to check wallets');
         }
-        
+
         const data = await res.json();
-        
+
         if (data.duplicate_count === 0) {
             alert(`✅ Không có wallet trùng lặp!\n\n` +
-                  `Tổng số organizations có wallet: ${data.total_organizations_with_wallets}\n` +
-                  `Số wallet duy nhất: ${data.unique_wallets}`);
+                `Tổng số organizations có wallet: ${data.total_organizations_with_wallets}\n` +
+                `Số wallet duy nhất: ${data.unique_wallets}`);
         } else {
             let message = `⚠️ Phát hiện ${data.duplicate_count} wallet bị trùng lặp!\n\n`;
-            
+
             data.duplicates.forEach((dup, index) => {
                 message += `Wallet ${index + 1}: ${dup.wallet_address}\n`;
                 dup.organizations.forEach(org => {
@@ -1392,17 +1392,17 @@ async function checkDuplicateWallets() {
                 });
                 message += '\n';
             });
-            
+
             message += `\n💡 Mỗi organization phải có wallet riêng để mint NFT!\n`;
             message += `Hãy vào Organization Detail để cập nhật wallet address.`;
-            
+
             alert(message);
-            
+
             // Log to console for details
             console.log('Duplicate Wallets:', data.duplicates);
             console.log('All Wallets:', data.all_wallets);
         }
-        
+
     } catch (error) {
         console.error('Error checking wallets:', error);
         alert('❌ Lỗi khi kiểm tra wallets:\n\n' + error.message);

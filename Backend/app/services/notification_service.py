@@ -161,7 +161,7 @@ class NotificationService:
                     "message": n.message,
                     "priority": n.priority,
                     "link": n.link,
-                    "metadata": n.metadata,
+                    "metadata": n.meta_data,  # Fixed: use meta_data column name
                     "is_read": n.is_read,
                     "created_at": n.created_at.isoformat()
                 }

@@ -77,33 +77,51 @@
           <form id="registerForm" class="login__form">
             <div class="login__content grid">
               <div class="login__box">
-                <input id="name" type="text" name="name" data-i18n-attr="placeholder:auth.fullName" placeholder="Full name" class="login__input">
+                <input id="name" type="text" name="name" data-i18n-attr="placeholder:auth.fullName" placeholder="Full name" class="login__input" required>
                 <i class="ri-user-line"></i>
               </div>
 
               <div class="login__box">
-                <input id="email" type="email" name="email" data-i18n-attr="placeholder:auth.email" placeholder="Email" class="login__input">
+                <input id="email" type="email" name="email" data-i18n-attr="placeholder:auth.email" placeholder="Email" class="login__input" required>
                 <i class="ri-mail-line"></i>
               </div>
-     
+
               <div class="login__box">
-                <input id="loginPass" type="password" name="password" data-i18n-attr="placeholder:auth.password" placeholder="Password" class="login__input">
+                <input id="organizationName" type="text" name="organization_name" data-i18n-attr="placeholder:auth.organizationName" placeholder="Organization Name (Công ty)" class="login__input" required>
+                <i class="ri-building-line"></i>
+              </div>
+
+              <div class="login__box">
+                <input id="loginPass" type="password" name="password" data-i18n-attr="placeholder:auth.password" placeholder="Password" class="login__input" required minlength="6">
                 <i class="ri-eye-line login__eye" id="loginEye"></i>
               </div>
 
               <div class="login__box">
-                <input id="confirmPass" type="password" name="confirm_password" data-i18n-attr="placeholder:auth.confirmPassword" placeholder="Confirm password" class="login__input">
+                <input id="confirmPass" type="password" name="confirm_password" data-i18n-attr="placeholder:auth.confirmPassword" placeholder="Confirm password" class="login__input" required minlength="6">
                 <i class="ri-lock-2-line"></i>
               </div>
 
               <div class="login__box">
-                <select id="userRole" name="role" class="login__input" style="padding-right: 2.5rem;">
+                <select id="userRole" name="role" class="login__input" style="padding-right: 2.5rem;" required>
                   <option value="" data-i18n="auth.selectRole">Select your role</option>
                   <option value="SME" data-i18n="auth.smeOrBuyer">SME or Buyer (Business User)</option>
                   <option value="BANK" data-i18n="auth.bank">Bank (Financial Institution)</option>
                 </select>
                 <i class="ri-shield-user-line"></i>
               </div>
+            </div>
+
+            <!-- Password strength indicator -->
+            <div id="passwordStrength" class="hidden mb-4 px-4">
+              <div class="h-1 bg-gray-200 rounded-full overflow-hidden">
+                <div id="strengthBar" class="h-full transition-all duration-300" style="width: 0%"></div>
+              </div>
+              <p id="strengthText" class="text-xs mt-1 text-gray-600"></p>
+            </div>
+
+            <!-- Form error messages -->
+            <div id="formErrors" class="hidden mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <ul id="errorList" class="text-sm text-red-700 list-disc list-inside"></ul>
             </div>
 
             <button id="registerBtn" type="submit" class="login__button" data-i18n="auth.register">Register</button>
@@ -115,6 +133,9 @@
       
     <!--=============== SWIPER JS ===============-->
     <script src="../js/swiper-bundel.min.js"></script>
+
+    <!--=============== NOTIFICATION SYSTEM ===============-->
+    <script src="../js/components/notification.js"></script>
 
     <!--=============== AUTH JS ===============-->
     <script src="../js/register.js"></script>

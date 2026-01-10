@@ -2,11 +2,18 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.db.session import SessionLocal
 from app.models.invoice import Invoice
+from app.models.user import User
+from app.models.organization import Organization
 from app.schemas.invoice import InvoiceCreate, InvoiceOut, InvoiceUpdate
 from app.core.security import get_current_user
+from app.services.notification_service import NotificationService, NotificationTemplates, notify_users
+from app.constants.invoice_status import InvoiceStatus, InvoiceStatusTransition
 from pydantic import BaseModel
-import datetime
+from datetime import datetime, timezone
 import hashlib
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/invoices", tags=["Invoices"])
 
@@ -84,28 +91,64 @@ def create_invoice(
     db.add(invoice)
     db.commit()
     db.refresh(invoice)
+
+    # Notify buyer about new invoice
+    if buyer_user_id:
+        try:
+            notification_service = NotificationService(db)
+            seller_org = db.query(Organization).filter(Organization.id == sme_org_id).first()
+            seller_name = seller_org.legal_name if seller_org else f"User {user_id}"
+
+            template = NotificationTemplates.invoice_created(
+                invoice_number=invoice.invoice_number,
+                seller_name=seller_name,
+                amount=invoice.amount
+            )
+
+            notification_service.create_notification(
+                user_id=buyer_user_id,
+                notification_type=template["type"],
+                title=template["title"],
+                message=template["message"],
+                priority=template["priority"],
+                metadata={"invoice_id": invoice.id},
+                link=f"/invoices/{invoice.id}"
+            )
+
+            logger.info(f"Notification sent to buyer {buyer_user_id} for invoice {invoice.id}")
+        except Exception as e:
+            logger.error(f"Failed to send notification: {str(e)}")
+            # Don't fail the request if notification fails
+
     return invoice
 
 
 # VIEW ALL MY INVOICES (as SME or BUYER)
-@router.get("/", response_model=list[InvoiceOut])
+@router.get("/", response_model=dict)
 def list_my_invoices(
+    page: int = 1,
+    page_size: int = 50,
     db: Session = Depends(get_db),
     user=Depends(get_current_user)
 ):
     from app.models.user import User
     from sqlalchemy.orm import joinedload
-    
+
     user_id = int(user["sub"])
-    
+
     # Get all invoices where user is either SME or Buyer with seller information
     invoices_query = db.query(Invoice).outerjoin(
         User, Invoice.sme_id == User.id
     ).filter(
         (Invoice.sme_id == user_id) | (Invoice.buyer_id == user_id)
     )
-    
-    invoices = invoices_query.all()
+
+    # Get total count for pagination
+    total = invoices_query.count()
+
+    # Apply pagination
+    offset = (page - 1) * page_size
+    invoices = invoices_query.offset(offset).limit(page_size).all()
     
     # Add seller_name to each invoice object
     result = []
@@ -157,10 +200,23 @@ def list_my_invoices(
                 invoice_dict["seller_name"] = seller.email if seller else None
         else:
             invoice_dict["seller_name"] = None
-            
+
         result.append(invoice_dict)
-    
-    return result
+
+    # Calculate total pages
+    total_pages = (total + page_size - 1) // page_size
+
+    return {
+        "data": result,
+        "pagination": {
+            "page": page,
+            "page_size": page_size,
+            "total": total,
+            "total_pages": total_pages,
+            "has_next": page < total_pages,
+            "has_prev": page > 1
+        }
+    }
 
 
 @router.get("/{invoice_id}", response_model=InvoiceOut)
@@ -256,7 +312,7 @@ def request_changes(
 
     invoice.status = "EDITING"
     invoice.change_request = data.change_request
-    invoice.change_requested_at = datetime.datetime.utcnow()
+    invoice.change_requested_at = datetime.now(timezone.utc)
     invoice.change_requested_by = user_id
     
     db.commit()
@@ -317,7 +373,7 @@ def buyer_edit_invoice(
     # Change status to EDITING (waiting for SME to resubmit/accept)
     invoice.status = "EDITING"
     invoice.change_request = data.edit_note or "Buyer edited invoice directly"
-    invoice.change_requested_at = datetime.datetime.utcnow()
+    invoice.change_requested_at = datetime.now(timezone.utc)
     invoice.change_requested_by = user_id
     
     db.commit()
@@ -378,7 +434,7 @@ def sme_edit_invoice(
     # Change status to EDITING (waiting for Buyer to accept/submit)
     invoice.status = "EDITING"
     invoice.change_request = data.edit_note or "SME edited invoice directly"
-    invoice.change_requested_at = datetime.datetime.utcnow()
+    invoice.change_requested_at = datetime.now(timezone.utc)
     invoice.change_requested_by = user_id
     
     db.commit()
@@ -441,7 +497,7 @@ def admin_edit_invoice(
     
     # Log the change
     invoice.change_request = data.edit_note or "Admin edited invoice"
-    invoice.change_requested_at = datetime.datetime.utcnow()
+    invoice.change_requested_at = datetime.now(timezone.utc)
     invoice.change_requested_by = int(user["sub"])
     
     db.commit()
@@ -477,7 +533,7 @@ def resubmit_invoice(
     # Increment revision
     invoice.revision_no = (invoice.revision_no or 1) + 1
     invoice.status = "DRAFT"
-    invoice.resubmitted_at = datetime.datetime.utcnow()
+    invoice.resubmitted_at = datetime.now(timezone.utc)
     invoice.resubmit_note = data.resubmit_note
     
     db.commit()
@@ -512,13 +568,39 @@ def accept_invoice(
     
     invoice.status = "SUBMITTED"
     invoice.locked_snapshot_hash = snapshot_hash
-    invoice.locked_at = datetime.datetime.utcnow()
+    invoice.locked_at = datetime.now(timezone.utc)
     invoice.locked_by = user_id
-    
+
     db.commit()
     db.refresh(invoice)
+
+    # Notify seller that buyer accepted the invoice
+    try:
+        notification_service = NotificationService(db)
+        buyer_user = db.query(User).filter(User.id == user_id).first()
+        buyer_name = buyer_user.email if buyer_user else f"Buyer {user_id}"
+
+        template = NotificationTemplates.buyer_accepted(
+            invoice_number=invoice.invoice_number,
+            buyer_name=buyer_name
+        )
+
+        notification_service.create_notification(
+            user_id=invoice.sme_id,
+            notification_type=template["type"],
+            title=template["title"],
+            message=template["message"],
+            priority=template["priority"],
+            metadata={"invoice_id": invoice.id},
+            link=f"/invoices/{invoice.id}"
+        )
+
+        logger.info(f"Notification sent to seller {invoice.sme_id} for buyer acceptance of invoice {invoice.id}")
+    except Exception as e:
+        logger.error(f"Failed to send notification: {str(e)}")
+
     return {
-        "message": "Invoice accepted and locked", 
+        "message": "Invoice accepted and locked",
         "status": invoice.status,
         "snapshot_hash": snapshot_hash
     }
@@ -555,7 +637,7 @@ def reject_invoice(
 
     invoice.status = "REJECTED"
     invoice.dispute_reason = data.reason
-    invoice.disputed_at = datetime.datetime.utcnow()
+    invoice.disputed_at = datetime.now(timezone.utc)
     invoice.disputed_by = user_id
     
     db.commit()
@@ -837,11 +919,11 @@ def purchase_invoice(
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"NFT transfer error: {str(e)}")
 
-    # Record the purchase and change status to FINANCED
+    # Record the purchase and change status to FINANCING
     invoice.bank_id = user_id
-    invoice.purchased_at = datetime.datetime.utcnow()
+    invoice.purchased_at = datetime.now(timezone.utc)
     invoice.purchase_price = data.purchase_price
-    invoice.status = "FINANCED"  # Change status from APPROVED to FINANCED
+    invoice.status = "FINANCING"  # Change status from APPROVED to FINANCING (intermediate state)
     
     db.commit()
     db.refresh(invoice)
@@ -887,7 +969,7 @@ def buyer_mark_paid(
         raise HTTPException(status_code=400, detail="Only FINANCED invoices can be marked as paid")
 
     invoice.status = "SETTLED"
-    invoice.paid_at = datetime.datetime.utcnow()
+    invoice.paid_at = datetime.now(timezone.utc)
     
     db.commit()
     db.refresh(invoice)
@@ -920,7 +1002,7 @@ def bank_confirm_payment(
         raise HTTPException(status_code=400, detail="Only SETTLED invoices can be confirmed")
 
     invoice.status = "CLOSED"
-    invoice.closed_at = datetime.datetime.utcnow()
+    invoice.closed_at = datetime.now(timezone.utc)
     
     db.commit()
     db.refresh(invoice)
@@ -1033,7 +1115,7 @@ def bank_decision(
     # If rejected, save rejection comment and metadata
     if decision == "REJECTED":
         invoice.rejection_comment = decision_data.get("comment", "Invoice rejected by admin")
-        invoice.rejected_at = datetime.datetime.utcnow()
+        invoice.rejected_at = datetime.now(timezone.utc)
         invoice.rejected_by = int(user.get("sub"))
     else:
         # Clear rejection data if approved
@@ -1042,6 +1124,50 @@ def bank_decision(
         invoice.rejected_by = None
     
     db.commit()
+
+    # Send notifications based on decision
+    try:
+        notification_service = NotificationService(db)
+
+        if decision == "APPROVED":
+            # Notify seller that invoice was approved
+            template = NotificationTemplates.admin_approved(
+                invoice_number=invoice.invoice_number
+            )
+
+            notification_service.create_notification(
+                user_id=invoice.sme_id,
+                notification_type=template["type"],
+                title=template["title"],
+                message=template["message"],
+                priority=template["priority"],
+                metadata={"invoice_id": invoice.id},
+                link=f"/invoices/{invoice.id}"
+            )
+
+            logger.info(f"Approval notification sent to seller {invoice.sme_id} for invoice {invoice.id}")
+        else:
+            # Notify seller that invoice was rejected
+            reason = decision_data.get("comment", "No reason provided")
+            template = NotificationTemplates.admin_rejected(
+                invoice_number=invoice.invoice_number,
+                reason=reason
+            )
+
+            notification_service.create_notification(
+                user_id=invoice.sme_id,
+                notification_type=template["type"],
+                title=template["title"],
+                message=template["message"],
+                priority=template["priority"],
+                metadata={"invoice_id": invoice.id, "reason": reason},
+                link=f"/invoices/{invoice.id}"
+            )
+
+            logger.info(f"Rejection notification sent to seller {invoice.sme_id} for invoice {invoice.id}")
+    except Exception as e:
+        logger.error(f"Failed to send notification: {str(e)}")
+
     return {"status": invoice.status, "message": f"Invoice {decision.lower()} successfully"}
 
 
@@ -1114,7 +1240,7 @@ def dispute_invoice(
     dispute_type = "PRE_FINANCE" if original_status == "APPROVED" else "POST_FINANCE"
     
     # Generate case ID
-    case_id = f"DISP-{invoice_id}-{datetime.datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+    case_id = f"DISP-{invoice_id}-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
     
     # Update invoice status to DISPUTED
     invoice.status = "DISPUTED"
@@ -1122,7 +1248,7 @@ def dispute_invoice(
     invoice.dispute_description = dispute_data.description
     invoice.dispute_type = dispute_type
     invoice.dispute_case_id = case_id
-    invoice.disputed_at = datetime.datetime.utcnow()
+    invoice.disputed_at = datetime.now(timezone.utc)
     invoice.disputed_by = user_id
     
     # Log the dispute

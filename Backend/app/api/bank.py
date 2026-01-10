@@ -4,10 +4,15 @@ from app.db.session import SessionLocal
 from app.models.invoice import Invoice
 from app.models.bank_request import BankRequest
 from app.models.user import User
+from app.models.organization import Organization
 from app.schemas.bank_request import BankRequestCreate, BankRequestOut, BankResponseRequest
 from app.core.security import get_current_user
+from app.services.notification_service import NotificationService, NotificationTemplates
 from typing import List
-import datetime
+from datetime import datetime, timezone
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/bank", tags=["Bank"])
 
@@ -74,7 +79,7 @@ def send_bank_requests(
             bank_id=bank_id,
             sme_id=user_id,
             status="PENDING",
-            requested_at=datetime.datetime.utcnow()
+            requested_at=datetime.now(timezone.utc)
         )
         db.add(request)
         created_requests.append(request)
@@ -82,7 +87,37 @@ def send_bank_requests(
     db.commit()
     for req in created_requests:
         db.refresh(req)
-    
+
+    # Notify banks about the financing requests
+    try:
+        notification_service = NotificationService(db)
+
+        for bank in banks:
+            # Get bank organization name
+            bank_org = db.query(Organization).filter(Organization.id == bank.organization_id).first()
+            bank_name = bank_org.legal_name if bank_org else bank.email
+
+            template = NotificationTemplates.bank_request_sent(
+                invoice_number=invoice.invoice_number,
+                bank_name=bank_name
+            )
+
+            # Find the request for this specific bank
+            bank_request = next((req for req in created_requests if req.bank_id == bank.id), None)
+            notification_service.create_notification(
+                user_id=bank.id,
+                notification_type=template["type"],
+                title=template["title"],
+                message=template["message"],
+                priority=template["priority"],
+                metadata={"invoice_id": invoice.id, "request_id": bank_request.id if bank_request else None},
+                link=f"/bank/invoices/available"
+            )
+
+            logger.info(f"Financing request notification sent to bank {bank.id} for invoice {invoice.id}")
+    except Exception as e:
+        logger.error(f"Failed to send notification: {str(e)}")
+
     return created_requests
 
 
@@ -223,8 +258,8 @@ def accept_request(
     
     # Update request
     request.status = "FINANCING"
-    request.financing_started_at = datetime.datetime.utcnow()
-    request.bank_responded_at = datetime.datetime.utcnow()
+    request.financing_started_at = datetime.now(timezone.utc)
+    request.bank_responded_at = datetime.now(timezone.utc)
     
     # Do NOT change invoice status - it should remain APPROVED
     # Invoice status only changes to FINANCED when both bank and SME confirm
@@ -267,20 +302,46 @@ def finance_invoice(
     
     # Update request
     request.status = "FINANCING"
-    request.financing_started_at = datetime.datetime.utcnow()
+    request.financing_started_at = datetime.now(timezone.utc)
     request.finance_amount = data.finance_amount
     request.interest_rate = data.interest_rate
     request.notes = data.notes
-    request.bank_responded_at = datetime.datetime.utcnow()
+    request.bank_responded_at = datetime.now(timezone.utc)
     
     # Update invoice
     invoice = db.query(Invoice).filter(Invoice.id == request.invoice_id).first()
     invoice.status = "FINANCING"
     invoice.bank_id = bank_id
-    
+
     db.commit()
     db.refresh(request)
-    
+
+    # Notify SME that bank accepted the financing request
+    try:
+        notification_service = NotificationService(db)
+        bank_user = db.query(User).filter(User.id == bank_id).first()
+        bank_org = db.query(Organization).filter(Organization.id == bank_user.organization_id).first()
+        bank_name = bank_org.legal_name if bank_org else bank_user.email
+
+        template = NotificationTemplates.bank_accepted(
+            invoice_number=invoice.invoice_number,
+            bank_name=bank_name
+        )
+
+        notification_service.create_notification(
+            user_id=request.sme_id,
+            notification_type=template["type"],
+            title=template["title"],
+            message=template["message"],
+            priority=template["priority"],
+            metadata={"invoice_id": invoice.id, "request_id": request.id, "amount": data.finance_amount},
+            link=f"/invoices/{invoice.id}"
+        )
+
+        logger.info(f"Financing acceptance notification sent to SME {request.sme_id} for invoice {invoice.id}")
+    except Exception as e:
+        logger.error(f"Failed to send notification: {str(e)}")
+
     return {"message": "Financing started", "request": request}
 
 
@@ -310,22 +371,52 @@ def mark_bank_financed(
         raise HTTPException(status_code=400, detail="Request must be in FINANCING status")
     
     # Update request
-    request.bank_financed_at = datetime.datetime.utcnow()
+    request.bank_financed_at = datetime.now(timezone.utc)
     
     # Update invoice
     invoice = db.query(Invoice).filter(Invoice.id == request.invoice_id).first()
     invoice.bank_confirmed_financed = True
-    invoice.bank_financed_at = datetime.datetime.utcnow()
+    invoice.bank_financed_at = datetime.now(timezone.utc)
     
     # Check if SME also confirmed
     if invoice.sme_confirmed_receipt:
         # Both confirmed, finalize
         invoice.status = "FINANCED"
         request.status = "FINANCED"
-        request.financed_at = datetime.datetime.utcnow()
-    
+        request.financed_at = datetime.now(timezone.utc)
+
     db.commit()
-    
+
+    # Notify SME that bank has transferred funds
+    try:
+        notification_service = NotificationService(db)
+        bank_user = db.query(User).filter(User.id == bank_id).first()
+        bank_org = db.query(Organization).filter(Organization.id == bank_user.organization_id).first()
+        bank_name = bank_org.legal_name if bank_org else bank_user.email
+
+        # Get finance amount from request
+        finance_amount = request.finance_amount or invoice.amount * 0.8  # Default to 80%
+
+        template = NotificationTemplates.bank_financed(
+            invoice_number=invoice.invoice_number,
+            bank_name=bank_name,
+            amount=finance_amount
+        )
+
+        notification_service.create_notification(
+            user_id=request.sme_id,
+            notification_type=template["type"],
+            title=template["title"],
+            message=template["message"],
+            priority=template["priority"],
+            metadata={"invoice_id": invoice.id, "request_id": request.id, "amount": finance_amount},
+            link=f"/invoices/{invoice.id}"
+        )
+
+        logger.info(f"Financing confirmation notification sent to SME {request.sme_id} for invoice {invoice.id}")
+    except Exception as e:
+        logger.error(f"Failed to send notification: {str(e)}")
+
     return {"message": "Bank confirmed financed", "status": request.status}
 
 
@@ -358,13 +449,40 @@ def reject_request(
     # Update request
     request.status = "REJECTED"
     request.rejection_reason = rejection_reason
-    request.bank_responded_at = datetime.datetime.utcnow()
-    
-    # Invoice status remains APPROVED so SME can send to other banks
-    # TODO: Send notification to SME about rejection
-    
+    request.bank_responded_at = datetime.now(timezone.utc)
+
     db.commit()
-    
+
+    # Notify SME about rejection
+    try:
+        notification_service = NotificationService(db)
+        bank_user = db.query(User).filter(User.id == bank_id).first()
+        bank_org = db.query(Organization).filter(Organization.id == bank_user.organization_id).first()
+        bank_name = bank_org.legal_name if bank_org else bank_user.email
+
+        # Get invoice details
+        invoice = db.query(Invoice).filter(Invoice.id == request.invoice_id).first()
+
+        template = NotificationTemplates.bank_rejected(
+            invoice_number=invoice.invoice_number,
+            bank_name=bank_name,
+            reason=rejection_reason
+        )
+
+        notification_service.create_notification(
+            user_id=request.sme_id,
+            notification_type=template["type"],
+            title=template["title"],
+            message=template["message"],
+            priority=template["priority"],
+            metadata={"invoice_id": invoice.id, "request_id": request.id, "reason": rejection_reason},
+            link=f"/invoices/{invoice.id}"
+        )
+
+        logger.info(f"Rejection notification sent to SME {request.sme_id} for request {request.id}")
+    except Exception as e:
+        logger.error(f"Failed to send notification: {str(e)}")
+
     return {"message": "Request rejected", "request": request}
 
 
@@ -401,17 +519,17 @@ def confirm_receipt(
     
     # Update invoice
     invoice.sme_confirmed_receipt = True
-    invoice.sme_confirmed_at = datetime.datetime.utcnow()
+    invoice.sme_confirmed_at = datetime.now(timezone.utc)
     
     if request:
-        request.sme_confirmed_receipt_at = datetime.datetime.utcnow()
+        request.sme_confirmed_receipt_at = datetime.now(timezone.utc)
         
         # Check if bank also confirmed
         if invoice.bank_confirmed_financed:
             # Both confirmed, finalize
             invoice.status = "FINANCED"
             request.status = "FINANCED"
-            request.financed_at = datetime.datetime.utcnow()
+            request.financed_at = datetime.now(timezone.utc)
     
     db.commit()
     

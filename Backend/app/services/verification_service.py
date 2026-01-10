@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 from app.models.organization import Organization, OrgStatus
 from app.models.user import User
@@ -14,7 +14,7 @@ class VerificationService:
         Check for organizations that have been verified for more than 30 days
         and reset their status to PENDING, requiring re-verification
         """
-        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+        thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
         
         # Find all approved organizations that were verified more than 30 days ago
         expired_orgs = db.query(Organization).filter(
@@ -47,7 +47,7 @@ class VerificationService:
             return 0
             
         expiry_date = verified_at + timedelta(days=30)
-        days_remaining = (expiry_date - datetime.utcnow()).days
+        days_remaining = (expiry_date - datetime.now(timezone.utc)).days
         return max(0, days_remaining)
     
     @staticmethod
@@ -58,5 +58,5 @@ class VerificationService:
         if not verified_at:
             return True
             
-        days_since_verification = (datetime.utcnow() - verified_at).days
+        days_since_verification = (datetime.now(timezone.utc) - verified_at).days
         return days_since_verification >= 30

@@ -86,7 +86,9 @@ async function manualRefresh() {
 async function loadDashboard() {
   // FIXED: Add error handling
   try {
-    const invoices = await apiFetch("/api/invoices");
+    // FIXED: Handle new pagination response format {data: [...], pagination: {...}}
+    const response = await apiFetch("/api/invoices");
+    const invoices = response.data || response; // Handle both new and old format
 
     // read filters
     const startVal = document.getElementById('startdate') ? document.getElementById('startdate').value : null;
@@ -334,7 +336,9 @@ let currentInvoices = [];
 async function showInvoiceDetail(invoiceId, role = 'sme') {
   try {
     // Fetch invoice details
-    const invoices = await apiFetch("/api/invoices");
+    // FIXED: Handle new pagination response format {data: [...], pagination: {...}}
+    const response = await apiFetch("/api/invoices");
+    const invoices = response.data || response; // Handle both new and old format
     const invoice = invoices.find(inv => inv.id === invoiceId);
     
     if (!invoice) {

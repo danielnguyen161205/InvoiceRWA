@@ -20,16 +20,18 @@ const USER_ROLES = {
   BANK: 'BANK'
 };
 
-// Invoice Statuses
+// Invoice Statuses - Must match backend InvoiceStatus enum (Backend/app/models/invoice.py)
 const INVOICE_STATUS = {
   DRAFT: 'DRAFT',
   EDITING: 'EDITING',
   SUBMITTED: 'SUBMITTED',
   APPROVED: 'APPROVED',
   REJECTED: 'REJECTED',
+  FINANCING: 'FINANCING',
   FINANCED: 'FINANCED',
-  PAID: 'PAID',
-  SETTLED: 'SETTLED'
+  SETTLED: 'SETTLED',
+  CLOSED: 'CLOSED',
+  DISPUTED: 'DISPUTED'
 };
 
 // Organization Statuses

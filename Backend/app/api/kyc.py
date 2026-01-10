@@ -13,6 +13,7 @@ from app.storage import save_file
 from app.core.security import get_current_user
 from app.storage import generate_presigned_url
 from app.models.audit import AuditLog, OrganizationReview
+from datetime import datetime, timezone
 
 
 def audit_log(db: Session, actor_sub: str, actor_roles: str, action: str, target_type: str, target_id: str = None, comments: str = None):
@@ -538,7 +539,7 @@ def review_org(org_id: int, action: ReviewAction, db: Session = Depends(get_db),
         org.rejection_reason = None  # Clear any previous rejection reason
         # Set verified_at timestamp when approved
         import datetime
-        org.verified_at = datetime.datetime.utcnow()
+        org.verified_at = datetime.now(timezone.utc)
         org.verified_by = int(reviewer_sub)  # Store who approved it
     else:
         org.status = OrgStatus.REJECTED

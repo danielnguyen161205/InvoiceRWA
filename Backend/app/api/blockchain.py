@@ -5,15 +5,69 @@ Blockchain API endpoints for invoice tokenization
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import Optional
-from datetime import datetime, date
+from datetime import datetime, date, timezone
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 from app.db.session import get_db
 from app.models.invoice import Invoice
-from app.services.web3_service import web3_service
-from app.core.security import get_current_user
 from app.models.user import User
+from app.services.web3_service import web3_service
+from app.services.notification_service import NotificationService, NotificationTemplates
+from app.core.security import get_current_user
 
 router = APIRouter()
+
+# Custom exception for retry logic
+class BlockchainTransientError(Exception):
+    """Exception for transient blockchain errors that should be retried"""
+    pass
+
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=4, max=10),
+    retry=retry_if_exception_type(BlockchainTransientError),
+    reraise=True
+)
+async def _mint_with_retry(
+    invoice_id: int,
+    seller_address: str,
+    buyer_address: str,
+    invoice_number: str,
+    serial_no: str,
+    face_value: float,
+    funding_request: float,
+    discount_rate: float,
+    maturity_date: datetime,
+    metadata_uri: str
+):
+    """
+    Internal function with retry logic for blockchain minting
+    Retries up to 3 times with exponential backoff if transient errors occur
+    """
+    try:
+        result = web3_service.mint_invoice_nft(
+            invoice_id=invoice_id,
+            seller_address=seller_address,
+            buyer_address=buyer_address,
+            invoice_number=invoice_number,
+            serial_no=serial_no,
+            face_value=face_value,
+            funding_request=funding_request,
+            discount_rate=discount_rate,
+            maturity_date=maturity_date,
+            metadata_uri=metadata_uri
+        )
+        return result
+    except Exception as e:
+        error_msg = str(e).lower()
+        # Check if this is a transient error (network issues, temporary RPC failures)
+        if any(keyword in error_msg for keyword in [
+            'timeout', 'network', 'connection', 'temporarily',
+            'rate limit', 'too many requests', 'gateway timeout'
+        ]):
+            raise BlockchainTransientError(f"Transient blockchain error: {str(e)}")
+        # For non-transient errors, don't retry
+        raise
 
 @router.post("/mint/{invoice_id}")
 async def mint_invoice_nft(
@@ -26,6 +80,8 @@ async def mint_invoice_nft(
     Only ADMIN can mint NFT
     Invoice must be in SUBMITTED or APPROVED status
     NFT is initially owned by SME, will transfer to Bank when purchased
+
+    Includes automatic retry logic for transient blockchain errors (up to 3 attempts)
     """
     # Check permissions - ONLY ADMIN can mint
     user_roles = current_user.get("roles") or ([current_user.get("role")] if current_user.get("role") else [])
@@ -121,7 +177,7 @@ async def mint_invoice_nft(
             if isinstance(maturity_date, date):
                 maturity_date = datetime.combine(maturity_date, datetime.min.time())
         
-        result = web3_service.mint_invoice_nft(
+        result = await _mint_with_retry(
             invoice_id=invoice.id,
             seller_address=seller_org.wallet_address,
             buyer_address=buyer_org.wallet_address,
@@ -140,9 +196,55 @@ async def mint_invoice_nft(
             invoice.nft_contract_address = web3_service.contract_address
             invoice.token_standard = "ERC-721"
             invoice.blockchain_tx_hash = result['tx_hash']
-            invoice.tokenized_at = datetime.now()
+            invoice.tokenized_at = datetime.now(timezone.utc)
             db.commit()
-            
+
+            # Notify seller and buyer about NFT minting
+            try:
+                notification_service = NotificationService(db)
+
+                template = NotificationTemplates.nft_minted(
+                    invoice_number=invoice.invoice_number,
+                    token_id=result['token_id']
+                )
+
+                # Notify seller (SME)
+                if invoice.sme_id:
+                    notification_service.create_notification(
+                        user_id=invoice.sme_id,
+                        notification_type=template["type"],
+                        title=template["title"],
+                        message=template["message"],
+                        priority=template["priority"],
+                        metadata={
+                            "invoice_id": invoice.id,
+                            "token_id": result['token_id'],
+                            "tx_hash": result['tx_hash']
+                        },
+                        link=f"/invoices/{invoice.id}"
+                    )
+                    logger.info(f"NFT minted notification sent to seller {invoice.sme_id}")
+
+                # Notify buyer
+                if invoice.buyer_id:
+                    notification_service.create_notification(
+                        user_id=invoice.buyer_id,
+                        notification_type=template["type"],
+                        title=template["title"],
+                        message=template["message"],
+                        priority=template["priority"],
+                        metadata={
+                            "invoice_id": invoice.id,
+                            "token_id": result['token_id'],
+                            "tx_hash": result['tx_hash']
+                        },
+                        link=f"/invoices/{invoice.id}"
+                    )
+                    logger.info(f"NFT minted notification sent to buyer {invoice.buyer_id}")
+
+            except Exception as e:
+                logger.error(f"Failed to send NFT minted notification: {str(e)}")
+
             return {
                 "success": True,
                 "message": "Invoice NFT minted successfully",

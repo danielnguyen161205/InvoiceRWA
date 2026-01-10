@@ -14,3 +14,4 @@ python-multipart
 cryptography
 web3
 eth-account
+tenacity

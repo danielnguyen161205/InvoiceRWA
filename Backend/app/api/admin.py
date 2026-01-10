@@ -35,7 +35,7 @@ def get_verification_stats(
     Get statistics about verification status
     """
     from app.models.organization import Organization, OrgStatus
-    from datetime import datetime, timedelta
+    from datetime import datetime, timedelta, timezone
     
     # Count organizations by status
     total_orgs = db.query(Organization).count()
@@ -44,15 +44,15 @@ def get_verification_stats(
     rejected_orgs = db.query(Organization).filter(Organization.status == OrgStatus.REJECTED).count()
     
     # Count organizations expiring soon (within 7 days)
-    seven_days_from_now = datetime.utcnow() - timedelta(days=23)  # 30-7=23 days ago
+    seven_days_from_now = datetime.now(timezone.utc) - timedelta(days=23)  # 30-7=23 days ago
     expiring_soon = db.query(Organization).filter(
         Organization.status == OrgStatus.APPROVED,
         Organization.verified_at < seven_days_from_now,
-        Organization.verified_at >= datetime.utcnow() - timedelta(days=30)
+        Organization.verified_at >= datetime.now(timezone.utc) - timedelta(days=30)
     ).count()
     
     # Count already expired
-    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+    thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
     expired_orgs = db.query(Organization).filter(
         Organization.status == OrgStatus.APPROVED,
         Organization.verified_at < thirty_days_ago

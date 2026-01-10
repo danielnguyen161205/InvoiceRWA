@@ -46,12 +46,14 @@ async function loadStats() {
         }
         
         // Get all invoices
+        // FIXED: Handle new pagination response format {data: [...], pagination: {...}}
         const invoicesRes = await fetch(`${API_URL}/api/invoices`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        
+
         if (invoicesRes.ok) {
-            const invoices = await invoicesRes.json();
+            const response = await invoicesRes.json();
+            const invoices = response.data || response; // Handle both new and old format
             document.getElementById('totalInvoicesCount').innerText = invoices.length;
         }
         
@@ -757,9 +759,30 @@ function closeOrgReviewModal() {
 // Review organization
 async function reviewOrganization(action) {
     if (!currentOrgId) return;
-    
-    const comments = document.getElementById('reviewComments').value;
-    
+
+    const comments = document.getElementById('reviewComments').value.trim();
+
+    // Validate comments for rejection
+    if (action === 'REJECT' && !comments) {
+        if (window.notification) {
+            window.notification.warning('Vui lòng nhập lý do từ chối / Please enter rejection reason', 3000);
+        } else {
+            alert('⚠️ Vui lòng nhập lý do từ chối / Please enter rejection reason');
+        }
+        document.getElementById('reviewComments').focus();
+        return;
+    }
+
+    // Show confirmation for approve action
+    if (action === 'APPROVE') {
+        const confirmed = await window.notification?.confirm(
+            'Bạn có chắc chắn muốn phê duyệt tổ chức này?\n\nAre you sure you want to approve this organization?',
+            'Xác nhận phê duyệt / Confirm Approval'
+        ) || confirm('Bạn có chắc chắn muốn phê duyệt tổ chức này?');
+
+        if (!confirmed) return;
+    }
+
     try {
         const token = localStorage.getItem('token');
         const res = await fetch(`${API_URL}/api/kyc/organizations/${currentOrgId}/review`, {
@@ -773,20 +796,43 @@ async function reviewOrganization(action) {
                 comments: comments
             })
         });
-        
+
         if (!res.ok) {
-            const error = await res.text();
-            throw new Error(error);
+            const error = await res.json();
+            throw new Error(error.detail || 'Review failed');
         }
-        
-        alert(`Organization ${action === 'APPROVE' ? 'approved' : 'rejected'} successfully!`);
+
+        const result = await res.json();
+
+        // Show success notification
+        if (window.notification) {
+            if (action === 'APPROVE') {
+                window.notification.success(
+                    `✅ Đã phê duyệt tổ chức #${currentOrgId} thành công! / Organization approved successfully!`,
+                    4000
+                );
+            } else {
+                window.notification.success(
+                    `✅ Đã từ chối tổ chức #${currentOrgId} / Organization rejected`,
+                    4000
+                );
+            }
+        } else {
+            alert(`✅ Organization ${action === 'APPROVE' ? 'approved' : 'rejected'} successfully!`);
+        }
+
         closeOrgReviewModal();
         loadOrganizations();
         loadStats();
-        
+
     } catch (error) {
         console.error('Error reviewing organization:', error);
-        alert('Error: ' + error.message);
+
+        if (window.notification) {
+            window.notification.error(error.message, 5000);
+        } else {
+            alert('❌ Error: ' + error.message);
+        }
     }
 }
 
@@ -1146,10 +1192,34 @@ async function rejectInvoice(invoiceId) {
 
 // Mint NFT for invoice (Admin only)
 async function mintInvoiceNFT(invoiceId) {
-    if (!confirm('🎨 Mint NFT for this invoice?\n\nThis will:\n- Create an ERC-721 token on blockchain\n- Initial owner: SME organization\n- Transfer to Bank when purchased\n\nMake sure both SME and Buyer organizations have wallet addresses configured.')) {
-        return;
-    }
-    
+    // Show confirmation modal
+    const confirmed = await window.notification?.confirm(
+        '🎨 Mint NFT cho hóa đơn này?\n\nThis will:\n- Create an ERC-721 token on blockchain\n- Initial owner: SME organization\n- Transfer to Bank when purchased\n\nMake sure both SME and Buyer organizations have wallet addresses configured.',
+        'Xác nhận Mint NFT / Confirm NFT Minting'
+    ) || confirm('🎨 Mint NFT cho hóa đơn này?\n\nMake sure both SME and Buyer organizations have wallet addresses configured.');
+
+    if (!confirmed) return;
+
+    // Create minting modal
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+    modal.innerHTML = `
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+            <div class="text-center">
+                <div class="mb-4">
+                    <div class="inline-block animate-spin rounded-full h-16 w-16 border-4 border-indigo-200 border-t-indigo-600"></div>
+                </div>
+                <h3 class="text-xl font-bold text-gray-900 mb-2">Đang mint NFT... / Minting NFT</h3>
+                <p class="text-gray-600 text-sm mb-4">Vui lòng chờ trong giây lát / Please wait a moment</p>
+                <div class="bg-gray-100 rounded-full p-3">
+                    <p class="text-xs text-gray-500">Blockchain Transaction</p>
+                    <p class="text-sm font-mono text-indigo-600">Processing...</p>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
     try {
         const token = localStorage.getItem('token');
         const res = await fetch(`${API_URL}/api/blockchain/mint/${invoiceId}`, {
@@ -1158,24 +1228,139 @@ async function mintInvoiceNFT(invoiceId) {
                 'Authorization': `Bearer ${token}`
             }
         });
-        
+
         if (!res.ok) {
             const error = await res.json();
             throw new Error(error.detail || 'Failed to mint NFT');
         }
-        
+
         const result = await res.json();
-        alert(`✅ NFT Minted Successfully!\n\n` +
-              `Token ID: ${result.token_id}\n` +
-              `Transaction Hash: ${result.tx_hash}\n` +
-              `Gas Used: ${result.gas_used}\n\n` +
-              `The NFT is now owned by the SME organization and will be transferred to Bank when purchased.`);
-        
+
+        // Remove loading modal
+        document.body.removeChild(modal);
+
+        // Create success modal with transaction details
+        const successModal = document.createElement('div');
+        successModal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+        successModal.innerHTML = `
+            <div class="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 p-6">
+                <div class="text-center mb-6">
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-4">
+                        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-2">NFT Minted Successfully! / NFT Đã Đúc Thành Công!</h3>
+                    <p class="text-gray-600">Invoice has been tokenized on the blockchain</p>
+                </div>
+
+                <div class="space-y-3 mb-6">
+                    <div class="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg p-4">
+                        <label class="text-xs font-semibold text-purple-600 uppercase">Token ID</label>
+                        <p class="text-lg font-mono font-bold text-purple-700">${result.token_id}</p>
+                    </div>
+
+                    <div class="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg p-4">
+                        <label class="text-xs font-semibold text-blue-600 uppercase">Transaction Hash</label>
+                        <div class="flex items-center gap-2 mt-1">
+                            <p class="text-xs font-mono text-blue-700 break-all flex-1">${result.tx_hash}</p>
+                            <button onclick="navigator.clipboard.writeText('${result.tx_hash}'); this.textContent='✓'; setTimeout(() => this.textContent='📋', 2000);" class="text-lg hover:scale-110 transition-transform" title="Copy">
+                                📋
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-gray-50 rounded-lg p-3">
+                            <label class="text-xs font-semibold text-gray-600 uppercase">Gas Used</label>
+                            <p class="text-sm font-bold text-gray-800">${result.gas_used || 'N/A'}</p>
+                        </div>
+                        <div class="bg-gray-50 rounded-lg p-3">
+                            <label class="text-xs font-semibold text-gray-600 uppercase">Status</label>
+                            <p class="text-sm font-bold text-green-600">✓ Confirmed</p>
+                        </div>
+                    </div>
+
+                    ${result.contract_address ? `
+                    <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-4">
+                        <label class="text-xs font-semibold text-green-600 uppercase">Contract Address</label>
+                        <div class="flex items-center gap-2 mt-1">
+                            <p class="text-xs font-mono text-green-700 break-all flex-1">${result.contract_address}</p>
+                            <button onclick="navigator.clipboard.writeText('${result.contract_address}'); this.textContent='✓'; setTimeout(() => this.textContent='📋', 2000);" class="text-lg hover:scale-110 transition-transform" title="Copy">
+                                📋
+                            </button>
+                        </div>
+                    </div>
+                    ` : ''}
+                </div>
+
+                <div class="bg-indigo-50 rounded-lg p-4 mb-6">
+                    <p class="text-sm text-indigo-800">
+                        <strong>Note:</strong> The NFT is now owned by the SME organization and will be transferred to Bank when purchased.
+                    </p>
+                </div>
+
+                <button onclick="this.closest('.fixed').remove(); loadInvoices();" class="w-full bg-indigo-600 text-white py-3 px-4 rounded-lg hover:bg-indigo-700 font-semibold transition-colors">
+                    Đóng / Close
+                </button>
+            </div>
+        `;
+        document.body.appendChild(successModal);
+
+        // Also show notification
+        if (window.notification) {
+            window.notification.success(
+                `✅ NFT #${result.token_id} minted successfully!`,
+                5000
+            );
+        }
+
         loadInvoices();
-        
+
     } catch (error) {
         console.error('Error minting NFT:', error);
-        alert('❌ Failed to mint NFT:\n\n' + error.message);
+
+        // Remove loading modal if exists
+        if (document.body.contains(modal)) {
+            document.body.removeChild(modal);
+        }
+
+        // Show error modal
+        const errorModal = document.createElement('div');
+        errorModal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+        errorModal.innerHTML = `
+            <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+                <div class="text-center mb-6">
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 mb-4">
+                        <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">NFT Minting Failed</h3>
+                    <p class="text-red-600 font-mono text-sm bg-red-50 p-3 rounded">${error.message}</p>
+                </div>
+
+                <div class="space-y-2 mb-6 text-sm text-gray-600">
+                    <p><strong>Possible causes:</strong></p>
+                    <ul class="list-disc list-inside space-y-1">
+                        <li>SME or Buyer organization missing wallet address</li>
+                        <li>Blockchain network connection issue</li>
+                        <li>Insufficient gas fees</li>
+                        <li>Smart contract error</li>
+                    </ul>
+                </div>
+
+                <button onclick="this.closest('.fixed').remove();" class="w-full bg-gray-600 text-white py-3 px-4 rounded-lg hover:bg-gray-700 font-semibold transition-colors">
+                    Đóng / Close
+                </button>
+            </div>
+        `;
+        document.body.appendChild(errorModal);
+
+        // Also show error notification
+        if (window.notification) {
+            window.notification.error(error.message, 6000);
+        }
     }
 }
 

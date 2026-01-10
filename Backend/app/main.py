@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api import auth, invoices, admin, bank
-from app.api import kyc, blockchain
+from app.api import kyc, blockchain, notifications
 from app.db.base import Base
 from app.db.session import engine
 
@@ -32,6 +32,7 @@ app.include_router(kyc.router, prefix="/api")
 app.include_router(blockchain.router, prefix="/api/blockchain", tags=["blockchain"])
 app.include_router(admin.router, prefix="/api")  # Admin routes
 app.include_router(bank.router, prefix="/api")  # Bank routes
+app.include_router(notifications.router, prefix="/api")  # Notifications routes
 
 
 @app.get("/")

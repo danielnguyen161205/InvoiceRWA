@@ -1,6 +1,14 @@
 // Check authentication and KYC status on page load
 requireAuth();
 
+// FIXED: Helper function to escape HTML and prevent XSS attacks
+function escapeHtml(text) {
+  if (text === null || text === undefined) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 // Format VND currency
 function formatVND(amount) {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
@@ -76,85 +84,101 @@ async function manualRefresh() {
 }
 
 async function loadDashboard() {
-  const invoices = await apiFetch("/api/invoices");
+  // FIXED: Add error handling
+  try {
+    const invoices = await apiFetch("/api/invoices");
 
-  // read filters
-  const startVal = document.getElementById('startdate') ? document.getElementById('startdate').value : null;
-  const endVal = document.getElementById('enddate') ? document.getElementById('enddate').value : null;
-  const statusVal = document.getElementById('status') ? document.getElementById('status').value : null;
+    // read filters
+    const startVal = document.getElementById('startdate') ? document.getElementById('startdate').value : null;
+    const endVal = document.getElementById('enddate') ? document.getElementById('enddate').value : null;
+    const statusVal = document.getElementById('status') ? document.getElementById('status').value : null;
 
-  // filter invoices according to UI
-  const filtered = invoices.filter(inv => {
-    let ok = true;
-    if (statusVal && statusVal !== 'ALL') ok = ok && String(inv.status) === String(statusVal);
-    if (startVal) {
-      const invDate = new Date(inv.created_at);
-      const startDate = new Date(startVal);
-      startDate.setHours(0,0,0,0);
-      ok = ok && invDate >= startDate;
+    // filter invoices according to UI
+    const filtered = invoices.filter(inv => {
+      let ok = true;
+      if (statusVal && statusVal !== 'ALL') ok = ok && String(inv.status) === String(statusVal);
+      if (startVal) {
+        const invDate = new Date(inv.created_at);
+        const startDate = new Date(startVal);
+        startDate.setHours(0,0,0,0);
+        ok = ok && invDate >= startDate;
+      }
+      if (endVal) {
+        const invDate = new Date(inv.created_at);
+        const endDate = new Date(endVal);
+        endDate.setHours(23,59,59,999);
+        ok = ok && invDate <= endDate;
+      }
+      return ok;
+    });
+
+    // Get current user ID from token to determine which invoices belong to SME vs Buyer view
+    let currentUserId = null;
+    const token = getToken(); // FIXED: Use getToken() function instead of direct access
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split(".")[1]));
+        currentUserId = payload.sub ? parseInt(payload.sub) : null;
+      } catch (e) {
+        console.error("Error decoding token:", e);
+      }
     }
-    if (endVal) {
-      const invDate = new Date(inv.created_at);
-      const endDate = new Date(endVal);
-      endDate.setHours(23,59,59,999);
-      ok = ok && invDate <= endDate;
-    }
-    return ok;
-  });
 
-  // Get current user ID from token to determine which invoices belong to SME vs Buyer view
-  let currentUserId = null;
-  const token = localStorage.getItem("token");
-  if (token) {
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      currentUserId = payload.sub ? parseInt(payload.sub) : null;
-    } catch (e) {
-      // ignore decode errors
+    // Split invoices: SME invoices (I'm the seller) vs Buyer invoices (I'm the buyer)
+    const smeInvoices = filtered.filter(inv => inv.sme_id === currentUserId);
+    const buyerInvoices = filtered.filter(inv => inv.buyer_id === currentUserId);
+
+    // Debug logging
+    console.log('📊 Dashboard Debug:', {
+      totalInvoices: filtered.length,
+      currentUserId: currentUserId,
+      smeCount: smeInvoices.length,
+      buyerCount: buyerInvoices.length,
+      sampleInvoices: filtered.slice(0, 3).map(inv => ({
+        id: inv.id,
+        invoice_number: inv.invoice_number,
+        sme_id: inv.sme_id,
+        buyer_id: inv.buyer_id,
+        status: inv.status
+      }))
+    });
+
+    // Check for new invoices and show notifications
+    if (previousInvoiceCounts.sme > 0 && smeInvoices.length > previousInvoiceCounts.sme) {
+      const newCount = smeInvoices.length - previousInvoiceCounts.sme;
+      showNewInvoiceNotification('sme', newCount);
+    }
+    if (previousInvoiceCounts.buyer > 0 && buyerInvoices.length > previousInvoiceCounts.buyer) {
+      const newCount = buyerInvoices.length - previousInvoiceCounts.buyer;
+      showNewInvoiceNotification('buyer', newCount);
+    }
+
+    // Update counts for next comparison
+    previousInvoiceCounts.sme = smeInvoices.length;
+    previousInvoiceCounts.buyer = buyerInvoices.length;
+
+    // Render SME table
+    renderInvoiceTable(smeInvoices, "sme");
+
+    // Render Buyer table
+    renderInvoiceTable(buyerInvoices, "buyer");
+
+    // Update last refresh time
+    updateLastRefreshTime();
+  } catch (error) {
+    console.error('Failed to load dashboard:', error);
+    // FIXED: Show user-friendly error message
+    const errorContainer = document.getElementById('dashboardError');
+    if (errorContainer) {
+      errorContainer.innerHTML = `
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          <strong class="font-bold">Error!</strong>
+          <span class="block sm:inline">Failed to load invoices. Please refresh the page.</span>
+        </div>
+      `;
+      errorContainer.classList.remove('hidden');
     }
   }
-
-  // Split invoices: SME invoices (I'm the seller) vs Buyer invoices (I'm the buyer)
-  const smeInvoices = filtered.filter(inv => inv.sme_id === currentUserId);
-  const buyerInvoices = filtered.filter(inv => inv.buyer_id === currentUserId);
-
-  // Debug logging
-  console.log('📊 Dashboard Debug:', {
-    totalInvoices: filtered.length,
-    currentUserId: currentUserId,
-    smeCount: smeInvoices.length,
-    buyerCount: buyerInvoices.length,
-    sampleInvoices: filtered.slice(0, 3).map(inv => ({
-      id: inv.id,
-      invoice_number: inv.invoice_number,
-      sme_id: inv.sme_id,
-      buyer_id: inv.buyer_id,
-      status: inv.status
-    }))
-  });
-
-  // Check for new invoices and show notifications
-  if (previousInvoiceCounts.sme > 0 && smeInvoices.length > previousInvoiceCounts.sme) {
-    const newCount = smeInvoices.length - previousInvoiceCounts.sme;
-    showNewInvoiceNotification('sme', newCount);
-  }
-  if (previousInvoiceCounts.buyer > 0 && buyerInvoices.length > previousInvoiceCounts.buyer) {
-    const newCount = buyerInvoices.length - previousInvoiceCounts.buyer;
-    showNewInvoiceNotification('buyer', newCount);
-  }
-
-  // Update counts for next comparison
-  previousInvoiceCounts.sme = smeInvoices.length;
-  previousInvoiceCounts.buyer = buyerInvoices.length;
-
-  // Render SME table
-  renderInvoiceTable(smeInvoices, "sme");
-
-  // Render Buyer table
-  renderInvoiceTable(buyerInvoices, "buyer");
-  
-  // Update last refresh time
-  updateLastRefreshTime();
 }
 
 function renderInvoiceTable(invoices, role) {
@@ -204,18 +228,37 @@ function renderInvoiceTable(invoices, role) {
          </span>`
       : `<span class="px-2 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">Not Minted</span>`;
 
-    const row = `
-      <div class="invoice-table-row bg-white flex items-center px-10 py-4 text-sm text-gray-600">
-        <div class="text-left" style="width: 140px;">${inv.invoice_number || inv.id}</div>
-        <div class="text-left" style="width: 200px;">${counterparty}</div>
-        <div class="text-center" style="width: 140px;">${formatVND(inv.amount)}</div>
-        <div class="text-center" style="width: 140px;"><span class="status ${inv.status}">${inv.status}</span></div>
-        <div class="text-center" style="width: 120px;">${nftStatus}</div>
-        <div class="text-center" style="width: 140px;">${new Date(inv.created_at).toLocaleDateString()}</div>
-        <div class="text-center flex-1">${action}</div>
-      </div>
-    `;
-    table.innerHTML += row;
+    // FIXED: Use createElement to prevent XSS attacks
+    const row = document.createElement('div');
+    row.className = 'invoice-table-row bg-white flex items-center px-10 py-4 text-sm text-gray-600';
+
+    // Create cells with textContent for security
+    const cells = [
+      { width: '140px', text: inv.invoice_number || inv.id },
+      { width: '200px', text: counterparty },
+      { width: '140px', text: formatVND(inv.amount) },
+      { width: '140px', html: `<span class="status ${inv.status}">${escapeHtml(inv.status)}</span>` },
+      { width: '120px', html: nftStatus },
+      { width: '140px', text: new Date(inv.created_at).toLocaleDateString() },
+      { flex: true, html: action }
+    ];
+
+    cells.forEach(cell => {
+      const cellDiv = document.createElement('div');
+      cellDiv.className = 'text-center';
+      if (cell.width) cellDiv.style.width = cell.width;
+      if (cell.flex) cellDiv.classList.add('flex-1');
+
+      if (cell.text) {
+        cellDiv.textContent = cell.text;
+      } else if (cell.html) {
+        cellDiv.innerHTML = cell.html;
+      }
+
+      row.appendChild(cellDiv);
+    });
+
+    table.appendChild(row);
   });
 
   document.getElementById(totalId).innerText = invoices.length;

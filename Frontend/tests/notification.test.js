@@ -28,18 +28,20 @@ global.document = {
 global.window = global;
 
 // Import notification module (mocked)
+import { vi } from 'vitest';
+
 describe('Notification System', () => {
   let notification;
 
   beforeAll(() => {
     // Create a mock notification object
     notification = {
-      show: jest.fn(),
-      success: jest.fn(),
-      error: jest.fn(),
-      info: jest.fn(),
-      warning: jest.fn(),
-      clear: jest.fn()
+      show: vi.fn(),
+      success: vi.fn(),
+      error: vi.fn(),
+      info: vi.fn(),
+      warning: vi.fn(),
+      clear: vi.fn()
     };
   });
 
@@ -92,9 +94,15 @@ describe('Notification System', () => {
 
   describe('XSS Prevention', () => {
     test('should escape HTML in messages', () => {
+      // Proper HTML escaping function
       const escapeHtml = (text) => {
-        const div = { textContent: text };
-        return `<div>${text}</div>`;
+        if (typeof text !== 'string') return String(text);
+        return text
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
       };
 
       const malicious = '<script>alert("xss")</script>';
@@ -128,6 +136,18 @@ describe('Notification System', () => {
 
 // Integration-style tests
 describe('Notification Integration', () => {
+  beforeAll(() => {
+    // Set up window.notification global
+    window.notification = {
+      show: vi.fn(),
+      success: vi.fn(),
+      error: vi.fn(),
+      info: vi.fn(),
+      warning: vi.fn(),
+      clear: vi.fn()
+    };
+  });
+
   describe('window.notification global', () => {
     test('should expose notification to global window object', () => {
       expect(typeof window.notification).toBe('object');

@@ -239,7 +239,18 @@ def get_approved_buyers(db: Session = Depends(get_db), user: dict = Depends(get_
 
 
 @router.get("/organizations/{org_id}", response_model=OrganizationOut)
-def get_organization(org_id: int, db: Session = Depends(get_db)):
+def get_organization(org_id: int, db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
+    """Get organization by ID - requires authentication and authorization"""
+    from app.models.user import User
+    roles = user.get('roles', [])
+    user_id = int(user.get('sub'))
+
+    # Check authorization - ADMIN can see all, users can only see their own org
+    if 'ADMIN' not in roles:
+        db_user = db.query(User).filter(User.id == user_id).first()
+        if not db_user or db_user.organization_id != org_id:
+            raise HTTPException(status_code=403, detail="Access denied - can only view your own organization")
+
     org = db.query(Organization).filter(Organization.id == org_id).first()
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")

@@ -170,18 +170,23 @@
             </div>
          </div>
       </div>
-      
+
       <!--=============== SWIPER JS ===============-->
       <script src="../js/swiper-bundel.min.js"></script>
 
-      <!--=============== MAIN JS ===============-->
-      <!-- Main entry point that imports all modules -->
-      <script type="module" src="../js/main.js"></script>
+      <!--=============== CORE MODULES ===============-->
+      <script src="../js/utils/constants.js"></script>
+      <script src="../js/utils/sanitizer.js"></script>
+      <script src="../js/utils/formatters.js"></script>
+      <script src="../js/utils/validators.js"></script>
+      <script src="../js/core/store.js"></script>
+      <script src="../js/core/api-client.js"></script>
+      <script src="../js/core/errorHandler.js"></script>
+      <script src="../js/components/notification.js"></script>
+      <script src="../js/main.js"></script>
 
       <!--=============== AUTH JS ===============-->
       <script src="../js/auth.js"></script>
-
-      <!--=============== MAIN JS ===============-->
       <script src="../js/login.js"></script>
    </body>
 </html>

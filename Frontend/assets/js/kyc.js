@@ -1,4 +1,6 @@
-const API = 'http://127.0.0.1:8000/api/kyc';
+// Load config - Must be loaded after config.js in HTML
+const API_URL = window.CONFIG ? window.CONFIG.API_BASE_URL : "http://127.0.0.1:8000";
+const API = API_URL + '/api/kyc';
 
 // Check if user already has an organization
 async function checkExistingOrganization() {

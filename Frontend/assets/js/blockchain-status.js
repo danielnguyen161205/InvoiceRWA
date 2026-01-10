@@ -3,6 +3,9 @@
  * Hiển thị trạng thái NFT của invoice
  */
 
+// Load config - Must be loaded after config.js in HTML
+const API_URL = window.CONFIG ? window.CONFIG.API_BASE_URL : "http://127.0.0.1:8000";
+
 /**
  * Check if invoice is tokenized
  */
@@ -10,8 +13,8 @@ async function checkInvoiceTokenization(invoiceId) {
     try {
         const token = localStorage.getItem('access_token');
         if (!token) return null;
-        
-        const response = await fetch(`http://localhost:8000/api/blockchain/token/${invoiceId}`, {
+
+        const response = await fetch(`${API_URL}/api/blockchain/token/${invoiceId}`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }

@@ -3,7 +3,8 @@
  * Improved with secure token storage and notification system
  */
 
-const API_URL = "http://127.0.0.1:8000";
+// Load config - Must be loaded after config.js in HTML
+const API_URL = window.CONFIG ? window.CONFIG.API_BASE_URL : "http://127.0.0.1:8000";
 
 /**
  * Login with email and password

@@ -5,7 +5,8 @@
 
 // API Configuration
 const API_CONFIG = {
-  BASE_URL: 'http://127.0.0.1:8000',
+  // MVP Fix #3: Use centralized config from window.CONFIG
+  BASE_URL: window.CONFIG ? window.CONFIG.API_BASE_URL : 'http://127.0.0.1:8000',
   TIMEOUT: 30000,
   MAX_RETRIES: 3,
   RETRY_DELAY: 1000,

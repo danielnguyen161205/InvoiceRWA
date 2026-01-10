@@ -276,3 +276,35 @@ def get_user_by_id(
         is_active=getattr(db_user, 'is_active', True),
         created_at=db_user.created_at.isoformat() if hasattr(db_user, 'created_at') and db_user.created_at else None
     )
+
+
+@users_router.get("/{user_id}", response_model=UserResponse)
+def get_user_by_id(user_id: int, db: Session = Depends(get_db)):
+    """
+    Get user by ID - Used by dashboard to fetch buyer_id details.
+    MVP Fix #1: This endpoint was missing, causing dashboard to break.
+    """
+    db_user = db.query(User).filter(User.id == user_id).first()
+
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Parse roles
+    roles_list = [r for r in db_user.roles.split(',') if r]
+
+    # Get organization information if available
+    organization_name = None
+    if db_user.organization_id:
+        org = db.query(Organization).filter(Organization.id == db_user.organization_id).first()
+        if org:
+            organization_name = org.legal_name or org.trade_name
+
+    return UserResponse(
+        id=db_user.id,
+        email=db_user.email,
+        roles=roles_list,
+        organization_id=db_user.organization_id,
+        organization_name=organization_name,
+        is_active=getattr(db_user, 'is_active', True),
+        created_at=db_user.created_at.isoformat() if hasattr(db_user, 'created_at') and db_user.created_at else None
+    )

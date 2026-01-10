@@ -1,4 +1,5 @@
-const API_URL = "http://127.0.0.1:8000";
+// Load config - Must be loaded after config.js in HTML
+const API_URL = window.CONFIG ? window.CONFIG.API_BASE_URL : "http://127.0.0.1:8000";
 
 // Password strength checker
 function checkPasswordStrength(password) {
@@ -150,8 +151,8 @@ async function register(event) {
       throw new Error(data.detail || 'Đăng ký thất bại / Registration failed');
     }
 
-    // Store token
-    localStorage.setItem('token', data.access_token);
+    // Store token in sessionStorage (more secure - cleared when tab closes)
+    sessionStorage.setItem('token', data.access_token);
 
     // Show success notification
     if (window.notification) {

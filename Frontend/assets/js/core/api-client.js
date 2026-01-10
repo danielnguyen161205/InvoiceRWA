@@ -5,7 +5,8 @@
 
 class ApiClient {
   constructor(config = {}) {
-    this.baseURL = config.baseURL || 'http://127.0.0.1:8000';
+    // MVP Fix #3: Use centralized config
+    this.baseURL = config.baseURL || (window.CONFIG ? window.CONFIG.API_BASE_URL : 'http://127.0.0.1:8000');
     this.defaultTimeout = config.timeout || 30000;
     this.maxRetries = config.maxRetries || 3;
     this.retryDelay = config.retryDelay || 1000;

@@ -43,16 +43,17 @@ def get_verification_stats(
     approved_orgs = db.query(Organization).filter(Organization.status == OrgStatus.APPROVED).count()
     rejected_orgs = db.query(Organization).filter(Organization.status == OrgStatus.REJECTED).count()
     
-    # Count organizations expiring soon (within 7 days)
-    seven_days_from_now = datetime.utcnow() - timedelta(days=23)  # 30-7=23 days ago
+    # Count organizations expiring soon (within 7 days from now)
+    # Organizations verified between 23-30 days ago will expire in the next 7 days
+    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+    twenty_three_days_ago = datetime.utcnow() - timedelta(days=23)
     expiring_soon = db.query(Organization).filter(
         Organization.status == OrgStatus.APPROVED,
-        Organization.verified_at < seven_days_from_now,
-        Organization.verified_at >= datetime.utcnow() - timedelta(days=30)
+        Organization.verified_at >= twenty_three_days_ago,
+        Organization.verified_at <= thirty_days_ago
     ).count()
-    
+
     # Count already expired
-    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
     expired_orgs = db.query(Organization).filter(
         Organization.status == OrgStatus.APPROVED,
         Organization.verified_at < thirty_days_ago

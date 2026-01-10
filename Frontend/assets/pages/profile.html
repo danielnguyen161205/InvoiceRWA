@@ -951,7 +951,7 @@
 
         // Load profile data
         async function loadProfile() {
-            const token = localStorage.getItem('token');
+            const token = getToken ? getToken() : (localStorage.getItem('token') || sessionStorage.getItem('token'));
             if (!token) {
                 window.location.href = '/pages/login.html';
                 return;
@@ -971,7 +971,11 @@
             
             // Set back to dashboard link based on role
             const backLink = document.getElementById('backToDashboard');
+            if (!backLink) return;
+
             if (kycVerified) {
+                // User is verified - link to appropriate dashboard
+                backLink.style.display = 'flex';
                 if (roles.includes('ADMIN')) {
                     backLink.href = '/pages/admin-dashboard.html';
                 } else if (roles.includes('BANK')) {
@@ -980,8 +984,16 @@
                     backLink.href = '/pages/sme-dashboard.html';
                 }
             } else {
-                // If not verified, hide the back button or make it disabled
-                backLink.style.display = 'none';
+                // User not verified - still show back button but link to a safe page
+                // or show a message that they need to complete KYC first
+                backLink.style.display = 'flex';
+                // Link to login page for now, user needs to complete KYC
+                backLink.href = '/pages/login.html';
+                // Add a visual indicator that KYC is needed
+                const backSpan = backLink.querySelector('span[data-i18n="nav.backToDashboard"]');
+                if (backSpan) {
+                    backSpan.textContent = 'Back to Login (Complete KYC first)';
+                }
             }
             
             // Set basic info
@@ -1022,9 +1034,518 @@
             window.location.href = '/pages/login.html';
         }
 
+        // ========== GLOBAL KYC/UBO DATA ==========
+        // These are declared in global scope to be accessible by all functions
+        window.kycPersonsData = [];
+        window.shareholdersData = [];
+
+        // ========== GLOBAL KYC/UBO FUNCTIONS ==========
+        // These functions are declared in global scope for onclick handlers
+
+        window.addKycPerson = function() {
+            const person = {
+                id: Date.now(),
+                full_name: '',
+                date_of_birth: '',
+                nationality: 'Việt Nam',
+                id_type: 'CCCD',
+                id_number: '',
+                address: '',
+                contact: '',
+                role: 'LEGAL_REP'
+            };
+            window.kycPersonsData.push(person);
+            window.renderKycPersons();
+        };
+
+        window.removeKycPerson = function(id) {
+            window.kycPersonsData = window.kycPersonsData.filter(p => p.id !== id);
+            window.renderKycPersons();
+        };
+
+        window.updateKycPerson = function(id, field, value) {
+            const person = window.kycPersonsData.find(p => p.id === id);
+            if (person) {
+                person[field] = value;
+            }
+        };
+
+        window.renderKycPersons = function() {
+            const container = document.getElementById('kycPersonsList');
+            if (!container) return;
+
+            if (window.kycPersonsData.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="ri-user-add-line text-4xl mb-2"></i>
+                        <p>Chưa có thông tin cá nhân. Nhấn "Thêm người" để bắt đầu.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = window.kycPersonsData.map(person => `
+                <div class="bg-white p-4 rounded-lg border border-gray-300 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <h4 class="font-semibold text-gray-800 flex items-center">
+                            <i class="ri-user-line mr-2 text-blue-600"></i>
+                            Người #${window.kycPersonsData.indexOf(person) + 1}
+                        </h4>
+                        <button onclick="removeKycPerson(${person.id})" class="text-red-600 hover:bg-red-50 p-2 rounded transition-colors">
+                            <i class="ri-delete-bin-line"></i>
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="ri-user-star-line"></i> Họ và tên <span class="text-red-600">*</span>
+                            </label>
+                            <input type="text" value="${person.full_name}"
+                                onchange="updateKycPerson(${person.id}, 'full_name', this.value)"
+                                placeholder="VD: Nguyễn Văn A"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="ri-cake-line"></i> Ngày sinh
+                            </label>
+                            <input type="date" value="${person.date_of_birth}"
+                                onchange="updateKycPerson(${person.id}, 'date_of_birth', this.value)"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="ri-global-line"></i> Quốc tịch
+                            </label>
+                            <input type="text" value="${person.nationality}"
+                                onchange="updateKycPerson(${person.id}, 'nationality', this.value)"
+                                placeholder="VD: Việt Nam"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="ri-bank-card-line"></i> Loại giấy tờ
+                            </label>
+                            <select value="${person.id_type}"
+                                onchange="updateKycPerson(${person.id}, 'id_type', this.value)"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <option value="CCCD" ${person.id_type === 'CCCD' ? 'selected' : ''}>CCCD</option>
+                                <option value="CMND" ${person.id_type === 'CMND' ? 'selected' : ''}>CMND</option>
+                                <option value="PASSPORT" ${person.id_type === 'PASSPORT' ? 'selected' : ''}>Hộ chiếu</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="ri-id-card-line"></i> Số CCCD/CMND/Hộ chiếu <span class="text-red-600">*</span>
+                            </label>
+                            <input type="text" value="${person.id_number}"
+                                onchange="updateKycPerson(${person.id}, 'id_number', this.value)"
+                                placeholder="VD: 001234567890"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                            <button onclick="scanIdDocument(${person.id})" class="mt-2 px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors">
+                                <i class="ri-camera-line mr-1"></i> Scan giấy tờ
+                            </button>
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="ri-map-pin-line"></i> Địa chỉ cư trú
+                            </label>
+                            <input type="text" value="${person.address}"
+                                onchange="updateKycPerson(${person.id}, 'address', this.value)"
+                                placeholder="VD: Số 123, Đường ABC, Phường XYZ, Quận 1, TP.HCM"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="ri-phone-line"></i> Liên hệ
+                            </label>
+                            <input type="text" value="${person.contact}"
+                                onchange="updateKycPerson(${person.id}, 'contact', this.value)"
+                                placeholder="VD: 0901234567 hoặc email@example.com"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="ri-shield-user-line"></i> Vai trò <span class="text-red-600">*</span>
+                            </label>
+                            <select value="${person.role}"
+                                onchange="updateKycPerson(${person.id}, 'role', this.value)"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <option value="LEGAL_REP" ${person.role === 'LEGAL_REP' ? 'selected' : ''}>Người đại diện pháp luật</option>
+                                <option value="DIRECTOR" ${person.role === 'DIRECTOR' ? 'selected' : ''}>Giám đốc</option>
+                                <option value="SHAREHOLDER" ${person.role === 'SHAREHOLDER' ? 'selected' : ''}>Cổ đông</option>
+                                <option value="OTHER" ${person.role === 'OTHER' ? 'selected' : ''}>Khác</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        };
+
+        window.addShareholder = function() {
+            const shareholder = {
+                id: Date.now(),
+                name: '',
+                type: 'INDIVIDUAL',
+                ownership_percent: '',
+                id_number: ''
+            };
+            window.shareholdersData.push(shareholder);
+            window.renderShareholders();
+        };
+
+        window.removeShareholder = function(id) {
+            window.shareholdersData = window.shareholdersData.filter(s => s.id !== id);
+            window.renderShareholders();
+        };
+
+        window.updateShareholder = function(id, field, value) {
+            const shareholder = window.shareholdersData.find(s => s.id === id);
+            if (shareholder) {
+                shareholder[field] = value;
+            }
+        };
+
+        window.renderShareholders = function() {
+            const container = document.getElementById('shareholdersList');
+            if (!container) return;
+
+            if (window.shareholdersData.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="ri-group-line text-4xl mb-2"></i>
+                        <p>Chưa có thông tin cổ đông. Nhấn "Thêm cổ đông" để bắt đầu.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = window.shareholdersData.map(shareholder => `
+                <div class="bg-white p-4 rounded-lg border border-gray-300 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <h4 class="font-semibold text-gray-800 flex items-center">
+                            <i class="ri-user-line mr-2 text-green-600"></i>
+                            Cổ đông #${window.shareholdersData.indexOf(shareholder) + 1}
+                        </h4>
+                        <button onclick="removeShareholder(${shareholder.id})" class="text-red-600 hover:bg-red-50 p-2 rounded transition-colors">
+                            <i class="ri-delete-bin-line"></i>
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="ri-user-line"></i> Tên cổ đông <span class="text-red-600">*</span>
+                            </label>
+                            <input type="text" value="${shareholder.name}"
+                                onchange="updateShareholder(${shareholder.id}, 'name', this.value)"
+                                placeholder="VD: Công ty ABC hoặc Nguyễn Văn A"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="ri-building-line"></i> Loại cổ đông
+                            </label>
+                            <select value="${shareholder.type}"
+                                onchange="updateShareholder(${shareholder.id}, 'type', this.value)"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                                <option value="INDIVIDUAL" ${shareholder.type === 'INDIVIDUAL' ? 'selected' : ''}>Cá nhân</option>
+                                <option value="ORGANIZATION" ${shareholder.type === 'ORGANIZATION' ? 'selected' : ''}>Tổ chức</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="ri-percent-line"></i> Tỷ lệ sở hữu (%) <span class="text-red-600">*</span>
+                            </label>
+                            <input type="number" value="${shareholder.ownership_percent}"
+                                onchange="updateShareholder(${shareholder.id}, 'ownership_percent', this.value)"
+                                placeholder="VD: 51"
+                                min="0" max="100" step="0.01"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="ri-id-card-line"></i> Số giấy tờ (nếu là tổ chức)
+                            </label>
+                            <input type="text" value="${shareholder.id_number}"
+                                onchange="updateShareholder(${shareholder.id}, 'id_number', this.value)"
+                                placeholder="Mã số thuế (nếu là tổ chức)"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        };
+
+        // Additional global functions for UBO and document handling
+        window.addUboDocUpload = function() {
+            const container = document.getElementById('uboDocumentsList');
+            const newUpload = document.createElement('div');
+            newUpload.className = 'flex items-center gap-2';
+            newUpload.innerHTML = `
+                <input type="file" class="ubo-doc-upload flex-1 px-4 py-3 border border-gray-300 rounded-lg"
+                    accept=".pdf,.xlsx,.xls,.jpg,.jpeg,.png">
+                <button onclick="this.parentElement.remove()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                    <i class="ri-delete-bin-line"></i>
+                </button>
+            `;
+            container.appendChild(newUpload);
+        };
+
+        window.toggleListedCompany = function() {
+            const checkbox = document.getElementById('ubo_is_listed');
+            const info = document.getElementById('listedCompanyInfo');
+
+            if (checkbox && info) {
+                if (checkbox.checked) {
+                    info.classList.remove('hidden');
+                } else {
+                    info.classList.add('hidden');
+                }
+            }
+        };
+
+        // Scanner global variables
+        window.currentScanPersonId = null;
+        window.videoStream = null;
+        window.facingMode = 'environment';
+        window.capturedImageData = null;
+        window.extractedInfo = null;
+
+        window.scanIdDocument = function(personId) {
+            window.currentScanPersonId = personId;
+            const scannerModal = document.getElementById('scannerModal');
+            if (scannerModal) {
+                scannerModal.classList.remove('hidden');
+                scannerModal.classList.add('flex');
+
+                // Show camera view, hide others
+                const cameraView = document.getElementById('cameraView');
+                const previewView = document.getElementById('previewView');
+                const processingView = document.getElementById('processingView');
+                const resultsView = document.getElementById('resultsView');
+
+                if (cameraView) cameraView.classList.remove('hidden');
+                if (previewView) previewView.classList.add('hidden');
+                if (processingView) processingView.classList.add('hidden');
+                if (resultsView) resultsView.classList.add('hidden');
+
+                window.startCamera();
+            }
+        };
+
+        window.startCamera = async function() {
+            try {
+                const constraints = {
+                    video: {
+                        facingMode: window.facingMode,
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
+                    }
+                };
+
+                window.videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+                const video = document.getElementById('scannerVideo');
+                if (video) {
+                    video.srcObject = window.videoStream;
+                    await video.play();
+                }
+            } catch (error) {
+                console.error('Camera access error:', error);
+                alert('Không thể truy cập camera. Vui lòng cấp quyền camera hoặc sử dụng tính năng tải file.');
+            }
+        };
+
+        window.switchCamera = function() {
+            window.facingMode = window.facingMode === 'user' ? 'environment' : 'user';
+            window.stopCamera();
+            window.startCamera();
+        };
+
+        window.stopCamera = function() {
+            if (window.videoStream) {
+                window.videoStream.getTracks().forEach(track => track.stop());
+                window.videoStream = null;
+            }
+        };
+
+        window.captureDocument = function() {
+            const video = document.getElementById('scannerVideo');
+            const canvas = document.getElementById('scannerCanvas');
+            if (!video || !canvas) return;
+
+            const context = canvas.getContext('2d');
+
+            // Set canvas size to video size
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            // Draw video frame to canvas
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Get image data
+            window.capturedImageData = canvas.toDataURL('image/jpeg', 0.95);
+
+            // Show preview
+            const previewImage = document.getElementById('previewImage');
+            const cameraView = document.getElementById('cameraView');
+            const previewView = document.getElementById('previewView');
+
+            if (previewImage) previewImage.src = window.capturedImageData;
+            if (cameraView) cameraView.classList.add('hidden');
+            if (previewView) previewView.classList.remove('hidden');
+
+            window.stopCamera();
+        };
+
+        window.useFileUpload = function() {
+            const fileInput = document.getElementById('fileUploadInput');
+            if (fileInput) fileInput.click();
+        };
+
+        window.handleFileUpload = function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                window.capturedImageData = e.target.result;
+                const previewImage = document.getElementById('previewImage');
+                const cameraView = document.getElementById('cameraView');
+                const previewView = document.getElementById('previewView');
+
+                if (previewImage) previewImage.src = window.capturedImageData;
+                if (cameraView) cameraView.classList.add('hidden');
+                if (previewView) previewView.classList.remove('hidden');
+
+                window.stopCamera();
+            };
+            reader.readAsDataURL(file);
+        };
+
+        window.retakePhoto = function() {
+            window.capturedImageData = null;
+            const cameraView = document.getElementById('cameraView');
+            const previewView = document.getElementById('previewView');
+
+            if (previewView) previewView.classList.add('hidden');
+            if (cameraView) cameraView.classList.remove('hidden');
+
+            window.startCamera();
+        };
+
+        window.closeScannerModal = function() {
+            window.stopCamera();
+
+            const scannerModal = document.getElementById('scannerModal');
+            const cameraView = document.getElementById('cameraView');
+            const previewView = document.getElementById('previewView');
+            const processingView = document.getElementById('processingView');
+            const resultsView = document.getElementById('resultsView');
+
+            if (scannerModal) {
+                scannerModal.classList.add('hidden');
+                scannerModal.classList.remove('flex');
+            }
+
+            // Reset states
+            window.capturedImageData = null;
+            window.extractedInfo = null;
+            window.currentScanPersonId = null;
+
+            // Reset views
+            if (cameraView) cameraView.classList.remove('hidden');
+            if (previewView) previewView.classList.add('hidden');
+            if (processingView) processingView.classList.add('hidden');
+            if (resultsView) resultsView.classList.add('hidden');
+        };
+
+        // Load existing KYC/UBO data from API
+        window.loadExistingKycUboData = async function() {
+            const token = getToken ? getToken() : (localStorage.getItem('token') || sessionStorage.getItem('token'));
+            if (!token) return;
+
+            try {
+                const res = await fetch('http://127.0.0.1:8000/api/kyc/kyc-ubo/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+
+                    // Load KYC persons
+                    if (data.kyc_persons && data.kyc_persons.length > 0) {
+                        window.kycPersonsData = data.kyc_persons.map(p => ({
+                            id: p.id || Date.now() + Math.random(),
+                            full_name: p.full_name || '',
+                            date_of_birth: p.date_of_birth || '',
+                            nationality: p.nationality || 'Việt Nam',
+                            id_type: p.id_type || 'CCCD',
+                            id_number: p.id_number || '',
+                            address: p.address || '',
+                            contact: p.contact || '',
+                            role: p.role || 'LEGAL_REP'
+                        }));
+                        window.renderKycPersons();
+                    }
+
+                    // Load shareholders
+                    if (data.shareholders && data.shareholders.length > 0) {
+                        window.shareholdersData = data.shareholders.map(s => ({
+                            id: s.id || Date.now() + Math.random(),
+                            name: s.name || '',
+                            type: s.shareholder_type || 'INDIVIDUAL',
+                            ownership_percent: s.ownership_percent || '',
+                            id_number: s.id_number || ''
+                        }));
+                        window.renderShareholders();
+                    }
+
+                    // Load UBO listed company info
+                    if (data.ubo) {
+                        const listedCheckbox = document.getElementById('ubo_is_listed');
+                        const stockExchange = document.getElementById('ubo_stock_exchange');
+                        const stockCode = document.getElementById('ubo_stock_code');
+
+                        if (listedCheckbox && data.ubo.is_listed) {
+                            listedCheckbox.checked = true;
+                            window.toggleListedCompany();
+                        }
+                        if (stockExchange && data.ubo.stock_exchange) {
+                            stockExchange.value = data.ubo.stock_exchange;
+                        }
+                        if (stockCode && data.ubo.stock_code) {
+                            stockCode.value = data.ubo.stock_code;
+                        }
+                    }
+
+                    console.log('Loaded existing KYC/UBO data:', data);
+                }
+            } catch (error) {
+                console.error('Error loading KYC/UBO data:', error);
+                // Silently fail - user will fill in fresh data
+            }
+        };
+
         // Initialize KYC/KYB Form
         async function initializeKycForm() {
-            const token = localStorage.getItem('token');
+            // Use getToken() to check both sessionStorage and localStorage
+            const token = getToken ? getToken() : (localStorage.getItem('token') || sessionStorage.getItem('token'));
+            if (!token) {
+                console.error('No token found, user not authenticated');
+                return;
+            }
             const payload = JSON.parse(atob(token.split('.')[1]));
             const kycVerified = payload.kyc_verified || false;
             const orgStatus = payload.org_status;
@@ -1121,7 +1642,7 @@
             const submitBtn = document.getElementById('kycSubmitBtn');
 
             // Load KYC/UBO data when form is ready
-            loadExistingKycUboData();
+            window.loadExistingKycUboData();
 
             // Validation function for all sections
             function validateAllSections() {
@@ -1143,27 +1664,27 @@
                 }
                 
                 // 2. Validate KYC section - at least 1 person
-                if (kycPersonsData.length === 0) {
+                if (window.kycPersonsData.length === 0) {
                     alert('❌ Vui lòng thêm ít nhất 1 người trong phần KYC Cá nhân');
                     return false;
                 }
-                
+
                 // Validate all persons have required fields
-                for (const person of kycPersonsData) {
+                for (const person of window.kycPersonsData) {
                     if (!person.full_name || !person.id_number || !person.role) {
                         alert('❌ Vui lòng điền đầy đủ thông tin cho tất cả người trong KYC:\n- Họ tên\n- Số CCCD/Passport\n- Vai trò');
                         return false;
                     }
                 }
-                
+
                 // 3. Validate UBO section - at least 1 shareholder
-                if (shareholdersData.length === 0) {
+                if (window.shareholdersData.length === 0) {
                     alert('❌ Vui lòng thêm ít nhất 1 cổ đông trong phần UBO (Người thụ hưởng cuối cùng)');
                     return false;
                 }
-                
+
                 // Validate all shareholders have required fields
-                for (const shareholder of shareholdersData) {
+                for (const shareholder of window.shareholdersData) {
                     if (!shareholder.name || !shareholder.ownership_percent) {
                         alert('❌ Vui lòng điền đầy đủ thông tin cho tất cả cổ đông:\n- Tên cổ đông\n- Tỷ lệ sở hữu');
                         return false;
@@ -1179,8 +1700,8 @@
                     e.preventDefault();
                     
                     console.log('=== FORM SUBMIT STARTED ===');
-                    console.log('kycPersonsData:', kycPersonsData);
-                    console.log('shareholdersData:', shareholdersData);
+                    console.log('kycPersonsData:', window.kycPersonsData);
+                    console.log('shareholdersData:', window.shareholdersData);
                     
                     // Validate all sections first
                     if (!validateAllSections()) {
@@ -1193,7 +1714,7 @@
                     try {
                         // Step 1: Save KYC/UBO data first
                         const kycUboData = {
-                            kyc_persons: kycPersonsData.map(p => ({
+                            kyc_persons: window.kycPersonsData.map(p => ({
                                 full_name: p.full_name,
                                 date_of_birth: p.date_of_birth || null,
                                 nationality: p.nationality,
@@ -1205,7 +1726,7 @@
                                 contact: p.contact || null,
                                 role: p.role
                             })),
-                            shareholders: shareholdersData.map(s => ({
+                            shareholders: window.shareholdersData.map(s => ({
                                 name: s.name,
                                 shareholder_type: s.type,
                                 ownership_percent: s.ownership_percent ? parseFloat(s.ownership_percent) : null,
@@ -1318,7 +1839,7 @@
                         // Step 4: No additional file uploads needed
                         // All roles use the same form now
                         
-                        alert('✅ Gửi yêu cầu xác minh thành công!\n\nĐã gửi đầy đủ:\n- KYB (Thông tin tổ chức)\n- KYC (' + kycPersonsData.length + ' người)\n- UBO (' + shareholdersData.length + ' cổ đông)\n\nVui lòng chờ admin phê duyệt.');
+                        alert('✅ Gửi yêu cầu xác minh thành công!\n\nĐã gửi đầy đủ:\n- KYB (Thông tin tổ chức)\n- KYC (' + window.kycPersonsData.length + ' người)\n- UBO (' + window.shareholdersData.length + ' cổ đông)\n\nVui lòng chờ admin phê duyệt.');
                         location.reload();
                         
                     } catch (error) {
@@ -1356,7 +1877,7 @@
             checkWalletConnection();
             
             // Check if user needs to complete KYC/KYB
-            const token = localStorage.getItem('token');
+            const token = getToken ? getToken() : (localStorage.getItem('token') || sessionStorage.getItem('token'));
             if (token) {
                 const payload = JSON.parse(atob(token.split('.')[1]));
                 const kycVerified = payload.kyc_verified || false;
@@ -1373,7 +1894,7 @@
 
         async function checkWalletConnection() {
             // First, get wallet address from backend (organization)
-            const token = localStorage.getItem('token');
+            const token = getToken ? getToken() : (localStorage.getItem('token') || sessionStorage.getItem('token'));
             if (!token) return;
             
             try {
@@ -1431,7 +1952,7 @@
         }
 
         async function saveWalletToOrganization(walletAddress) {
-            const token = localStorage.getItem('token');
+            const token = getToken ? getToken() : (localStorage.getItem('token') || sessionStorage.getItem('token'));
             if (!token) {
                 throw new Error('Not authenticated');
             }
@@ -1464,7 +1985,7 @@
             }
 
             // Remove from backend
-            const token = localStorage.getItem('token');
+            const token = getToken ? getToken() : (localStorage.getItem('token') || sessionStorage.getItem('token'));
             if (token) {
                 try {
                     const response = await fetch('http://127.0.0.1:8000/api/kyc/organization/wallet', {
@@ -1543,585 +2064,6 @@
                 }
             });
         }
-        
-        // ========== KYC/UBO Management Functions ==========
-        
-        let kycPersonsData = [];
-        let shareholdersData = [];
-        
-        // Load existing KYC/UBO data when page loads
-        function loadExistingKycUboData() {
-            // Disabled - not loading existing data anymore
-            // Just initialize empty forms
-            kycPersonsData = [];
-            shareholdersData = [];
-            renderKycPersons();
-            renderShareholders();
-            return;
-            
-            /* OLD CODE - DISABLED
-            const token = localStorage.getItem('token');
-            
-            // Load existing data from backend
-            fetch('http://127.0.0.1:8000/api/kyc/kyc-ubo', {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            })
-            .then(res => {
-                if (res.ok) return res.json();
-                if (res.status === 400 || res.status === 404) {
-                    // User doesn't have organization yet - this is expected for new users
-                    // Don't log to console to avoid clutter
-                    return null;
-                }
-                throw new Error('Failed to load KYC/UBO data');
-            })
-            .then(data => {
-                if (!data) {
-                    // No data yet - show empty forms
-                    kycPersonsData = [];
-                    shareholdersData = [];
-                    renderKycPersons();
-                    renderShareholders();
-                    return;
-                }
-                
-                // Load KYC persons
-                kycPersonsData = data.kyc_persons.map(p => ({
-                    id: p.id,
-                    full_name: p.full_name,
-                    date_of_birth: p.date_of_birth || '',
-                    nationality: p.nationality,
-                    id_type: p.id_type,
-                    id_number: p.id_number,
-                    address: p.address || '',
-                    contact: p.contact || '',
-                    role: p.role
-                }));
-                
-                // Load shareholders
-                shareholdersData = data.shareholders.map(s => ({
-                    id: s.id,
-                    name: s.name,
-                    type: s.shareholder_type,
-                    ownership_percent: s.ownership_percent || '',
-                    id_number: s.id_number || ''
-                }));
-                
-                // Load UBO
-                if (data.ubo) {
-                    document.getElementById('ubo_is_listed').checked = data.ubo.is_listed;
-                    document.getElementById('ubo_stock_exchange').value = data.ubo.stock_exchange || '';
-                    document.getElementById('ubo_stock_code').value = data.ubo.stock_code || '';
-                    toggleListedCompany();
-                }
-                
-                renderKycPersons();
-                renderShareholders();
-                console.log('✅ Loaded existing KYC/UBO data:', {
-                    persons: kycPersonsData.length,
-                    shareholders: shareholdersData.length
-                });
-            })
-            .catch(err => {
-                // Silent fail - just show empty forms
-                kycPersonsData = [];
-                shareholdersData = [];
-                renderKycPersons();
-                renderShareholders();
-            });
-            */
-        }
-        
-        // === KYC Persons Management ===
-        
-        function addKycPerson() {
-            const person = {
-                id: Date.now(),
-                full_name: '',
-                date_of_birth: '',
-                nationality: 'Việt Nam',
-                id_type: 'CCCD',
-                id_number: '',
-                address: '',
-                contact: '',
-                role: ''
-            };
-            kycPersonsData.push(person);
-            renderKycPersons();
-        }
-        
-        function removeKycPerson(id) {
-            kycPersonsData = kycPersonsData.filter(p => p.id !== id);
-            renderKycPersons();
-        }
-        
-        function renderKycPersons() {
-            const container = document.getElementById('kycPersonsList');
-            
-            if (kycPersonsData.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-8 text-gray-500">
-                        <i class="ri-user-add-line text-4xl mb-2"></i>
-                        <p>Chưa có thông tin cá nhân. Nhấn "Thêm người" để bắt đầu.</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            container.innerHTML = kycPersonsData.map(person => `
-                <div class="bg-white p-4 rounded-lg border border-gray-300 shadow-sm">
-                    <div class="flex items-center justify-between mb-4">
-                        <h4 class="font-semibold text-gray-800 flex items-center">
-                            <i class="ri-user-line mr-2 text-blue-600"></i>
-                            Người #${kycPersonsData.indexOf(person) + 1}
-                        </h4>
-                        <button onclick="removeKycPerson(${person.id})" class="text-red-600 hover:bg-red-50 p-2 rounded transition-colors">
-                            <i class="ri-delete-bin-line"></i>
-                        </button>
-                    </div>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <div class="md:col-span-2">
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                <i class="ri-user-star-line"></i> Họ và tên <span class="text-red-600">*</span>
-                            </label>
-                            <input type="text" value="${person.full_name}" 
-                                onchange="updateKycPerson(${person.id}, 'full_name', this.value)"
-                                placeholder="VD: Nguyễn Văn A"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                <i class="ri-cake-line"></i> Ngày sinh
-                            </label>
-                            <input type="date" value="${person.date_of_birth}" 
-                                onchange="updateKycPerson(${person.id}, 'date_of_birth', this.value)"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                <i class="ri-global-line"></i> Quốc tịch
-                            </label>
-                            <input type="text" value="${person.nationality}" 
-                                onchange="updateKycPerson(${person.id}, 'nationality', this.value)"
-                                placeholder="VD: Việt Nam"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                <i class="ri-bank-card-line"></i> Loại giấy tờ
-                            </label>
-                            <select value="${person.id_type}" 
-                                onchange="updateKycPerson(${person.id}, 'id_type', this.value)"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                                <option value="CCCD" ${person.id_type === 'CCCD' ? 'selected' : ''}>CCCD</option>
-                                <option value="CMND" ${person.id_type === 'CMND' ? 'selected' : ''}>CMND</option>
-                                <option value="PASSPORT" ${person.id_type === 'PASSPORT' ? 'selected' : ''}>Hộ chiếu</option>
-                            </select>
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                <i class="ri-id-card-line"></i> Số CCCD/CMND/Hộ chiếu <span class="text-red-600">*</span>
-                            </label>
-                            <input type="text" value="${person.id_number}" 
-                                onchange="updateKycPerson(${person.id}, 'id_number', this.value)"
-                                placeholder="VD: 001234567890"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                            <button onclick="scanIdDocument(${person.id})" class="mt-2 px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors">
-                                <i class="ri-camera-line mr-1"></i> Scan giấy tờ
-                            </button>
-                        </div>
-                        
-                        <div class="md:col-span-2">
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                <i class="ri-map-pin-line"></i> Địa chỉ cư trú
-                            </label>
-                            <input type="text" value="${person.address}" 
-                                onchange="updateKycPerson(${person.id}, 'address', this.value)"
-                                placeholder="VD: Số 123, Đường ABC, Phường XYZ, Quận 1, TP.HCM"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                <i class="ri-phone-line"></i> Liên hệ
-                            </label>
-                            <input type="text" value="${person.contact}" 
-                                onchange="updateKycPerson(${person.id}, 'contact', this.value)"
-                                placeholder="VD: 0901234567 hoặc email@example.com"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        
-                        <div class="md:col-span-3">
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                <i class="ri-briefcase-line"></i> Vai trò liên quan đến DN <span class="text-red-600">*</span>
-                            </label>
-                            <select value="${person.role}" 
-                                onchange="updateKycPerson(${person.id}, 'role', this.value)"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                                <option value="">Chọn vai trò...</option>
-                                <option value="LEGAL_REP" ${person.role === 'LEGAL_REP' ? 'selected' : ''}>Người đại diện pháp luật</option>
-                                <option value="AUTHORIZED" ${person.role === 'AUTHORIZED' ? 'selected' : ''}>Người được ủy quyền ký/thao tác</option>
-                                <option value="SHAREHOLDER" ${person.role === 'SHAREHOLDER' ? 'selected' : ''}>Cổ đông</option>
-                                <option value="UBO" ${person.role === 'UBO' ? 'selected' : ''}>UBO (Ultimate Beneficial Owner)</option>
-                                <option value="OTHER" ${person.role === 'OTHER' ? 'selected' : ''}>Khác</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-        }
-        
-        function updateKycPerson(id, field, value) {
-            const person = kycPersonsData.find(p => p.id === id);
-            if (person) {
-                person[field] = value;
-            }
-        }
-        
-        // ========== Document Scanner Functions ==========
-        
-        let currentScanPersonId = null;
-        let videoStream = null;
-        let facingMode = 'environment'; // 'user' for front camera, 'environment' for back
-        let capturedImageData = null;
-        let extractedInfo = null;
-        
-        function scanIdDocument(personId) {
-            currentScanPersonId = personId;
-            document.getElementById('scannerModal').classList.remove('hidden');
-            document.getElementById('scannerModal').classList.add('flex');
-            
-            // Show camera view, hide others
-            document.getElementById('cameraView').classList.remove('hidden');
-            document.getElementById('previewView').classList.add('hidden');
-            document.getElementById('processingView').classList.add('hidden');
-            document.getElementById('resultsView').classList.add('hidden');
-            
-            startCamera();
-        }
-        
-        async function startCamera() {
-            try {
-                const constraints = {
-                    video: {
-                        facingMode: facingMode,
-                        width: { ideal: 1920 },
-                        height: { ideal: 1080 }
-                    }
-                };
-                
-                videoStream = await navigator.mediaDevices.getUserMedia(constraints);
-                const video = document.getElementById('scannerVideo');
-                video.srcObject = videoStream;
-                await video.play();
-            } catch (error) {
-                console.error('Camera access error:', error);
-                alert('Không thể truy cập camera. Vui lòng cấp quyền camera hoặc sử dụng tính năng tải file.');
-            }
-        }
-        
-        function switchCamera() {
-            facingMode = facingMode === 'user' ? 'environment' : 'user';
-            stopCamera();
-            startCamera();
-        }
-        
-        function stopCamera() {
-            if (videoStream) {
-                videoStream.getTracks().forEach(track => track.stop());
-                videoStream = null;
-            }
-        }
-        
-        function captureDocument() {
-            const video = document.getElementById('scannerVideo');
-            const canvas = document.getElementById('scannerCanvas');
-            const context = canvas.getContext('2d');
-            
-            // Set canvas size to video size
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            
-            // Draw video frame to canvas
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            
-            // Get image data
-            capturedImageData = canvas.toDataURL('image/jpeg', 0.95);
-            
-            // Show preview
-            document.getElementById('previewImage').src = capturedImageData;
-            document.getElementById('cameraView').classList.add('hidden');
-            document.getElementById('previewView').classList.remove('hidden');
-            
-            stopCamera();
-        }
-        
-        function useFileUpload() {
-            document.getElementById('fileUploadInput').click();
-        }
-        
-        function handleFileUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                capturedImageData = e.target.result;
-                document.getElementById('previewImage').src = capturedImageData;
-                document.getElementById('cameraView').classList.add('hidden');
-                document.getElementById('previewView').classList.remove('hidden');
-                stopCamera();
-            };
-            reader.readAsDataURL(file);
-        }
-        
-        function retakePhoto() {
-            capturedImageData = null;
-            document.getElementById('previewView').classList.add('hidden');
-            document.getElementById('cameraView').classList.remove('hidden');
-            startCamera();
-        }
-        
-        async function processDocument() {
-            // Show processing view
-            document.getElementById('previewView').classList.add('hidden');
-            document.getElementById('processingView').classList.remove('hidden');
-            
-            try {
-                // Simulate OCR processing (in production, call actual OCR API)
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                
-                // Mock OCR results - In production, replace with actual OCR API call
-                // You can integrate with Google Cloud Vision API, Tesseract.js, or Vietnamese OCR services
-                extractedInfo = await mockOCRExtraction(capturedImageData);
-                
-                // Show results
-                displayExtractedData(extractedInfo);
-                document.getElementById('processingView').classList.add('hidden');
-                document.getElementById('resultsView').classList.remove('hidden');
-                
-            } catch (error) {
-                console.error('OCR processing error:', error);
-                alert('Có lỗi xảy ra khi xử lý ảnh. Vui lòng thử lại hoặc nhập thủ công.');
-                closeScannerModal();
-            }
-        }
-        
-        async function mockOCRExtraction(imageData) {
-            // This is a mock function. In production, you would:
-            // 1. Send image to OCR API (Google Cloud Vision, AWS Textract, or Vietnamese OCR service)
-            // 2. Parse the response to extract fields
-            // 3. Return structured data
-            
-            // For demo purposes, returning sample data
-            const idTypes = ['CCCD', 'CMND', 'PASSPORT'];
-            const randomType = idTypes[Math.floor(Math.random() * idTypes.length)];
-            
-            return {
-                full_name: 'NGUYỄN VĂN A',
-                id_type: randomType,
-                id_number: randomType === 'PASSPORT' ? 'N1234567' : '001234567890',
-                date_of_birth: '1990-01-15',
-                nationality: 'Việt Nam',
-                address: 'Số 123, Đường ABC, Phường XYZ, Quận 1, TP.HCM',
-                id_issue_date: '2020-01-01',
-                id_issue_place: 'Cục Cảnh sát ĐKQL cư trú và DLQG về dân cư',
-                confidence: 0.95
-            };
-        }
-        
-        function displayExtractedData(data) {
-            const container = document.getElementById('extractedData');
-            container.innerHTML = `
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <span class="font-semibold text-gray-700">Họ và tên:</span>
-                        <span class="text-gray-900">${data.full_name || 'N/A'}</span>
-                    </div>
-                    <div>
-                        <span class="font-semibold text-gray-700">Loại giấy tờ:</span>
-                        <span class="text-gray-900">${data.id_type || 'N/A'}</span>
-                    </div>
-                    <div>
-                        <span class="font-semibold text-gray-700">Số giấy tờ:</span>
-                        <span class="text-gray-900">${data.id_number || 'N/A'}</span>
-                    </div>
-                    <div>
-                        <span class="font-semibold text-gray-700">Ngày sinh:</span>
-                        <span class="text-gray-900">${data.date_of_birth || 'N/A'}</span>
-                    </div>
-                    <div class="col-span-2">
-                        <span class="font-semibold text-gray-700">Địa chỉ:</span>
-                        <span class="text-gray-900">${data.address || 'N/A'}</span>
-                    </div>
-                    <div>
-                        <span class="font-semibold text-gray-700">Ngày cấp:</span>
-                        <span class="text-gray-900">${data.id_issue_date || 'N/A'}</span>
-                    </div>
-                    <div class="col-span-2">
-                        <span class="font-semibold text-gray-700">Nơi cấp:</span>
-                        <span class="text-gray-900">${data.id_issue_place || 'N/A'}</span>
-                    </div>
-                </div>
-                <div class="mt-3 pt-3 border-t border-green-200 text-xs text-gray-600">
-                    <i class="ri-shield-check-line text-green-600"></i> 
-                    Độ tin cậy: ${Math.round((data.confidence || 0) * 100)}%
-                </div>
-            `;
-        }
-        
-        function applyExtractedData() {
-            if (!extractedInfo || !currentScanPersonId) return;
-            
-            const person = kycPersonsData.find(p => p.id === currentScanPersonId);
-            if (person) {
-                // Auto-fill extracted data
-                person.full_name = extractedInfo.full_name || person.full_name;
-                person.id_type = extractedInfo.id_type || person.id_type;
-                person.id_number = extractedInfo.id_number || person.id_number;
-                person.date_of_birth = extractedInfo.date_of_birth || person.date_of_birth;
-                person.nationality = extractedInfo.nationality || person.nationality;
-                person.address = extractedInfo.address || person.address;
-                
-                // Re-render to show updated data
-                renderKycPersons();
-                
-                // Show success message
-                alert('✅ Đã áp dụng thông tin từ giấy tờ vào form!');
-            }
-            
-            closeScannerModal();
-        }
-        
-        function closeScannerModal() {
-            stopCamera();
-            document.getElementById('scannerModal').classList.add('hidden');
-            document.getElementById('scannerModal').classList.remove('flex');
-            
-            // Reset states
-            capturedImageData = null;
-            extractedInfo = null;
-            currentScanPersonId = null;
-            
-            // Reset views
-            document.getElementById('cameraView').classList.remove('hidden');
-            document.getElementById('previewView').classList.add('hidden');
-            document.getElementById('processingView').classList.add('hidden');
-            document.getElementById('resultsView').classList.add('hidden');
-        }
-        
-        // === Shareholders Management ===
-        
-        function addShareholder() {
-            const shareholder = {
-                id: Date.now(),
-                name: '',
-                type: 'INDIVIDUAL',
-                ownership_percent: '',
-                id_number: ''
-            };
-            shareholdersData.push(shareholder);
-            renderShareholders();
-        }
-        
-        function removeShareholder(id) {
-            shareholdersData = shareholdersData.filter(s => s.id !== id);
-            renderShareholders();
-        }
-        
-        function renderShareholders() {
-            const tbody = document.getElementById('shareholdersTableBody');
-            
-            if (shareholdersData.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="5" class="border border-gray-300 px-4 py-8 text-center text-gray-500">
-                            <i class="ri-group-line text-3xl mb-2"></i>
-                            <p>Chưa có cổ đông/thành viên. Nhấn "Thêm" để bắt đầu.</p>
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
-            
-            tbody.innerHTML = shareholdersData.map(sh => `
-                <tr class="hover:bg-gray-50">
-                    <td class="border border-gray-300 px-4 py-2">
-                        <input type="text" value="${sh.name}" 
-                            onchange="updateShareholder(${sh.id}, 'name', this.value)"
-                            placeholder="Tên cổ đông/thành viên"
-                            class="w-full px-2 py-1 border border-gray-200 rounded">
-                    </td>
-                    <td class="border border-gray-300 px-4 py-2">
-                        <select value="${sh.type}" 
-                            onchange="updateShareholder(${sh.id}, 'type', this.value)"
-                            class="w-full px-2 py-1 border border-gray-200 rounded">
-                            <option value="INDIVIDUAL" ${sh.type === 'INDIVIDUAL' ? 'selected' : ''}>Cá nhân</option>
-                            <option value="ORGANIZATION" ${sh.type === 'ORGANIZATION' ? 'selected' : ''}>Tổ chức</option>
-                        </select>
-                    </td>
-                    <td class="border border-gray-300 px-4 py-2">
-                        <input type="number" value="${sh.ownership_percent}" 
-                            onchange="updateShareholder(${sh.id}, 'ownership_percent', this.value)"
-                            placeholder="0-100"
-                            min="0" max="100" step="0.01"
-                            class="w-full px-2 py-1 border border-gray-200 rounded">
-                    </td>
-                    <td class="border border-gray-300 px-4 py-2">
-                        <input type="text" value="${sh.id_number}" 
-                            onchange="updateShareholder(${sh.id}, 'id_number', this.value)"
-                            placeholder="CCCD hoặc MST"
-                            class="w-full px-2 py-1 border border-gray-200 rounded">
-                    </td>
-                    <td class="border border-gray-300 px-4 py-2 text-center">
-                        <button onclick="removeShareholder(${sh.id})" class="text-red-600 hover:bg-red-50 p-2 rounded transition-colors">
-                            <i class="ri-delete-bin-line"></i>
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-        
-        function updateShareholder(id, field, value) {
-            const shareholder = shareholdersData.find(s => s.id === id);
-            if (shareholder) {
-                shareholder[field] = value;
-            }
-        }
-        
-        // === UBO Documents ===
-        
-        function addUboDocUpload() {
-            const container = document.getElementById('uboDocumentsList');
-            const newUpload = document.createElement('div');
-            newUpload.className = 'flex items-center gap-2';
-            newUpload.innerHTML = `
-                <input type="file" class="ubo-doc-upload flex-1 px-4 py-3 border border-gray-300 rounded-lg" 
-                    accept=".pdf,.xlsx,.xls,.jpg,.jpeg,.png">
-                <button onclick="this.parentElement.remove()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
-                    <i class="ri-delete-bin-line"></i>
-                </button>
-            `;
-            container.appendChild(newUpload);
-        }
-        
-        function toggleListedCompany() {
-            const checkbox = document.getElementById('ubo_is_listed');
-            const info = document.getElementById('listedCompanyInfo');
-            
-            if (checkbox.checked) {
-                info.classList.remove('hidden');
-            } else {
-                info.classList.add('hidden');
-            }
-        }
 
         // Handle resubmit KYB after rejection
         async function handleResubmitKYB() {
@@ -2130,7 +2072,7 @@
             }
 
             try {
-                const token = localStorage.getItem('token');
+                const token = getToken ? getToken() : (localStorage.getItem('token') || sessionStorage.getItem('token'));
                 
                 // Get current organization
                 const orgRes = await fetch(`${API_URL}/api/kyc/organizations/me`, {
@@ -2169,7 +2111,7 @@
                 }
                 
                 // Reload existing data
-                loadExistingKycUboData();
+                window.loadExistingKycUboData();
                 
             } catch (error) {
                 console.error('Error resubmitting:', error);

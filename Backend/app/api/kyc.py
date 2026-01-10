@@ -86,7 +86,9 @@ def create_organization(payload: OrganizationCreate, db: Session = Depends(get_d
     
     # audit
     try:
-        audit_log(db, user.get('sub'), ','.join(user.get('roles', [])) if user.get('roles') else None, 'CREATE_ORGANIZATION', 'organization', str(org.id), None)
+        user_roles = user.get('roles') or []
+        roles_str = ','.join(user_roles) if isinstance(user_roles, list) else (user_roles or "")
+        audit_log(db, user.get('sub'), roles_str, 'CREATE_ORGANIZATION', 'organization', str(org.id), None)
     except Exception:
         pass
     return org
@@ -171,8 +173,10 @@ def update_organization_wallet(
     db.refresh(org)
     
     # Audit log
-    audit_log(db, user.get('sub'), ','.join(user.get('roles', [])), 
-             'UPDATE_WALLET', 'ORGANIZATION', org.id, 
+    user_roles = user.get('roles') or []
+    roles_str = ','.join(user_roles) if isinstance(user_roles, list) else (user_roles or "")
+    audit_log(db, user.get('sub'), roles_str,
+             'UPDATE_WALLET', 'ORGANIZATION', org.id,
              f"Wallet address updated to {wallet_address}")
     
     return {"message": "Wallet address updated successfully", "wallet_address": wallet_address}
@@ -199,8 +203,10 @@ def remove_organization_wallet(
     db.commit()
     
     # Audit log
-    audit_log(db, user.get('sub'), ','.join(user.get('roles', [])), 
-             'REMOVE_WALLET', 'ORGANIZATION', org.id, 
+    user_roles = user.get('roles') or []
+    roles_str = ','.join(user_roles) if isinstance(user_roles, list) else (user_roles or "")
+    audit_log(db, user.get('sub'), roles_str,
+             'REMOVE_WALLET', 'ORGANIZATION', org.id,
              "Wallet address removed")
     
     return {"message": "Wallet address removed successfully"}
@@ -289,7 +295,9 @@ def upload_file_and_register(org_id: int, file: UploadFile = File(...), uploaded
     db.commit()
     db.refresh(doc)
     try:
-        audit_log(db, user.get('sub'), ','.join(user.get('roles', [])) if user.get('roles') else None, 'UPLOAD_DOCUMENT', 'document', str(doc.id), f"filename={doc.filename}")
+        user_roles = user.get('roles') or []
+        roles_str = ','.join(user_roles) if isinstance(user_roles, list) else (user_roles or "")
+        audit_log(db, user.get('sub'), roles_str, 'UPLOAD_DOCUMENT', 'document', str(doc.id), f"filename={doc.filename}")
     except Exception:
         pass
     return doc
@@ -321,7 +329,9 @@ def submit_for_review(org_id: int, db: Session = Depends(get_db), user: dict = D
     db.add(org)
     db.commit()
     try:
-        audit_log(db, user.get('sub'), ','.join(user.get('roles', [])) if user.get('roles') else None, 'SUBMIT_FOR_REVIEW', 'organization', str(org.id), None)
+        user_roles = user.get('roles') or []
+        roles_str = ','.join(user_roles) if isinstance(user_roles, list) else (user_roles or "")
+        audit_log(db, user.get('sub'), roles_str, 'SUBMIT_FOR_REVIEW', 'organization', str(org.id), None)
     except Exception:
         pass
     return {"status": "submitted"}
@@ -334,7 +344,8 @@ def review_org(org_id: int, action: ReviewAction, db: Session = Depends(get_db),
         raise HTTPException(status_code=404, detail="Organization not found")
 
     reviewer_sub = user.get('sub')
-    reviewer_roles = ','.join(user.get('roles', [])) if user.get('roles') else None
+    user_roles = user.get('roles') or []
+    reviewer_roles = ','.join(user_roles) if isinstance(user_roles, list) else (user_roles or "")
 
     # Only allow review if status is PENDING
     if org.status != OrgStatus.PENDING:
@@ -505,10 +516,12 @@ def save_kyc_ubo_data(
     
     # Audit log
     try:
+        user_roles = user.get('roles') or []
+        roles_str = ','.join(user_roles) if isinstance(user_roles, list) else (user_roles or "")
         audit_log(
-            db, 
-            user.get('sub'), 
-            ','.join(user.get('roles', [])) if user.get('roles') else None,
+            db,
+            user.get('sub'),
+            roles_str,
             'SAVE_KYC_UBO',
             'organization',
             str(org_id),
@@ -658,10 +671,12 @@ def save_wallet_address(
     db.commit()
     db.refresh(org)
     
+    user_roles = user.get('roles') or []
+    roles_str = ','.join(user_roles) if isinstance(user_roles, list) else (user_roles or "")
     audit_log(
         db=db,
         actor_sub=str(user_id),
-        actor_roles=','.join(user.get('roles', [])),
+        actor_roles=roles_str,
         action="UPDATE_WALLET",
         target_type="organization",
         target_id=str(org.id),

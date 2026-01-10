@@ -1,6 +1,7 @@
 import os
 import hashlib
 import tempfile
+import secrets
 from typing import Tuple
 
 _USE_S3 = os.getenv('S3_ENABLED', 'false').lower() in ('1', 'true', 'yes')
@@ -70,7 +71,11 @@ def save_file(org_id: int, filename: str, fileobj, content_type: str) -> Tuple[s
         os.makedirs(storage_dir, exist_ok=True)
         org_dir = os.path.join(storage_dir, str(org_id))
         os.makedirs(org_dir, exist_ok=True)
-        dest = os.path.join(org_dir, f"{file_hash}_{filename}")
+        # Add random component to filename for security
+        random_suffix = secrets.token_hex(8)
+        # Sanitize filename to prevent path traversal
+        safe_filename = filename.replace('/', '_').replace('\\', '_').replace('..', '_')
+        dest = os.path.join(org_dir, f"{file_hash}_{random_suffix}_{safe_filename}")
         os.replace(tmp_path, dest)
         return file_hash, dest
 

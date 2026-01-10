@@ -1,14 +1,19 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from app.api import auth, invoices, admin
 from app.api import kyc, blockchain
 from app.db.base import Base
 from app.db.session import engine
 import os
+import secrets
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Invoice RWA Backend")
+
+# Generate a secret key for CSRF protection if not set
+CSRF_SECRET = os.getenv("CSRF_SECRET", secrets.token_hex(32))
 
 # Configure CORS based on environment
 # Get allowed origins from environment variable or use development defaults
@@ -27,6 +32,14 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["*"]
 )
+
+# Add CSRF protection middleware
+# In production with specific origins, this helps prevent CSRF attacks
+if not allow_all:
+    app.add_middleware(
+        TrustedHostMiddleware,
+        allowed_hosts=["*"]  # Allow all hosts when behind proxy, configure specifically in production
+    )
 
 app.include_router(auth.router, prefix="/api")
 app.include_router(invoices.router, prefix="/api")

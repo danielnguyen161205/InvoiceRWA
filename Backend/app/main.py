@@ -4,17 +4,25 @@ from app.api import auth, invoices, admin
 from app.api import kyc, blockchain
 from app.db.base import Base
 from app.db.session import engine
+import os
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Invoice RWA Backend")
 
-# Allow frontend dev server origin for development
-# Use wildcard for development to allow all origins
+# Configure CORS based on environment
+# Get allowed origins from environment variable or use development defaults
+frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+allowed_origins = os.getenv("ALLOWED_ORIGINS", frontend_url).split(",")
+
+# For development, you can set ALLOWED_ORIGINS=* to allow all origins
+# In production, always set specific origins
+allow_all = "*" in allowed_origins
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins in development
-    allow_credentials=False,  # Set to False when using wildcard
+    allow_origins=["*"] if allow_all else allowed_origins,
+    allow_credentials=not allow_all,  # Cannot use credentials with wildcard
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"]

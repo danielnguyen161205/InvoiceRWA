@@ -87,13 +87,14 @@ def get_user_roles(user: dict) -> List[str]:
     """
     Extract roles from user dict in a consistent manner.
     Handles both list and string formats, with fallback to role field.
+    Strips whitespace from roles for consistency.
     """
     roles = user.get("roles")
     if isinstance(roles, list):
-        return [r for r in roles if r]
+        return [r.strip() if isinstance(r, str) else r for r in roles if r]
     if isinstance(roles, str):
-        return [r for r in roles.split(',') if r.strip()]
+        return [r.strip() for r in roles.split(',') if r.strip()]
     # Fallback to legacy role field
     if user.get("role"):
-        return [user.get("role")]
+        return [user.get("role").strip()]
     return []

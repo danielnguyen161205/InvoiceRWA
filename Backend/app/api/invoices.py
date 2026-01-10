@@ -32,10 +32,11 @@ def create_invoice(
     buyer_user_id = None
     if data.buyer_org_id:
         from app.models.user import User
-        # Find any user linked to this organization with BUYER role
+        from sqlalchemy import or_
+        # Find any user linked to this organization with BUYER role (using parameterized query)
         buyer_user = db.query(User).filter(
             User.organization_id == data.buyer_org_id,
-            (User.roles.like('%BUYER%')) | (User.role == 'BUYER')
+            or_(User.roles.contains('BUYER'), User.role == 'BUYER')
         ).first()
         if buyer_user:
             buyer_user_id = buyer_user.id

@@ -35,7 +35,7 @@ class Web3Service:
                 contract_json = json.load(f)
                 self.contract_abi = contract_json['abi']
         else:
-            print(f"⚠️ Contract ABI not found at {abi_path}")
+            print(f"WARNING Contract ABI not found at {abi_path}")
             print("   Please compile the contract first: cd contracts && npx hardhat compile")
             self.contract_abi = None
         
@@ -46,15 +46,15 @@ class Web3Service:
                 address=Web3.to_checksum_address(self.contract_address),
                 abi=self.contract_abi
             )
-            print(f"✅ Connected to InvoiceNFT contract at {self.contract_address}")
+            print(f"[OK] Connected to InvoiceNFT contract at {self.contract_address}")
         
         # Backend wallet account
         if self.private_key:
             self.account = self.w3.eth.account.from_key(self.private_key)
-            print(f"✅ Loaded backend wallet: {self.account.address}")
+            print(f"[OK] Loaded backend wallet: {self.account.address}")
         else:
             self.account = None
-            print("⚠️ No private key provided. Minting will not work.")
+            print("WARNING No private key provided. Minting will not work.")
 
     def is_connected(self) -> bool:
         """Check if connected to blockchain"""
@@ -138,7 +138,7 @@ class Web3Service:
             
             # Send transaction
             tx_hash = self.w3.eth.send_raw_transaction(signed_txn.raw_transaction)
-            print(f"📤 Transaction sent: {tx_hash.hex()}")
+            print(f"[SENDING] Transaction sent: {tx_hash.hex()}")
             
             # Wait for receipt
             tx_receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
@@ -147,7 +147,7 @@ class Web3Service:
                 # Get token ID from event logs
                 token_id = self._extract_token_id_from_receipt(tx_receipt)
                 
-                print(f"✅ Invoice NFT minted successfully!")
+                print(f"[OK] Invoice NFT minted successfully!")
                 print(f"   Token ID: {token_id}")
                 print(f"   Transaction: {tx_hash.hex()}")
                 
@@ -159,7 +159,7 @@ class Web3Service:
                     'gas_used': tx_receipt['gasUsed']
                 }
             else:
-                print(f"❌ Transaction failed")
+                print(f"[ERROR] Transaction failed")
                 return {
                     'success': False,
                     'error': 'Transaction failed',
@@ -167,7 +167,7 @@ class Web3Service:
                 }
                 
         except Exception as e:
-            print(f"❌ Error minting NFT: {str(e)}")
+            print(f"[ERROR] Error minting NFT: {str(e)}")
             raise
 
     def get_invoice_data(self, token_id: int) -> Optional[Dict[str, Any]]:
@@ -193,7 +193,7 @@ class Web3Service:
                 'is_closed': data[11]
             }
         except Exception as e:
-            print(f"❌ Error getting invoice data: {str(e)}")
+            print(f"[ERROR] Error getting invoice data: {str(e)}")
             return None
 
     def get_token_id_by_invoice_id(self, invoice_id: int) -> Optional[int]:
@@ -205,7 +205,7 @@ class Web3Service:
             token_id = self.contract.functions.getTokenIdByInvoiceId(invoice_id).call()
             return token_id if token_id > 0 else None
         except Exception as e:
-            print(f"❌ Error getting token ID: {str(e)}")
+            print(f"[ERROR] Error getting token ID: {str(e)}")
             return None
 
     def get_owner(self, token_id: int) -> Optional[str]:
@@ -217,7 +217,7 @@ class Web3Service:
             owner = self.contract.functions.ownerOf(token_id).call()
             return owner
         except Exception as e:
-            print(f"❌ Error getting owner: {str(e)}")
+            print(f"[ERROR] Error getting owner: {str(e)}")
             return None
 
     def _extract_token_id_from_receipt(self, tx_receipt) -> int:
@@ -283,13 +283,13 @@ class Web3Service:
             
             # Send transaction
             tx_hash = self.w3.eth.send_raw_transaction(signed_txn.raw_transaction)
-            print(f"📤 NFT Transfer transaction sent: {tx_hash.hex()}")
+            print(f"[SENDING] NFT Transfer transaction sent: {tx_hash.hex()}")
             
             # Wait for receipt
             tx_receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
             
             if tx_receipt['status'] == 1:
-                print(f"✅ NFT transferred successfully from {from_address} to {to_address}")
+                print(f"[OK] NFT transferred successfully from {from_address} to {to_address}")
                 return {
                     'success': True,
                     'tx_hash': tx_hash.hex(),
@@ -299,14 +299,14 @@ class Web3Service:
                     'token_id': token_id
                 }
             else:
-                print(f"❌ NFT transfer failed")
+                print(f"[ERROR] NFT transfer failed")
                 return {
                     'success': False,
                     'error': 'Transaction failed'
                 }
                 
         except Exception as e:
-            print(f"❌ Error transferring NFT: {str(e)}")
+            print(f"[ERROR] Error transferring NFT: {str(e)}")
             return {
                 'success': False,
                 'error': str(e)

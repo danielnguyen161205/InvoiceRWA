@@ -5,6 +5,7 @@ from app.services.verification_service import VerificationService
 from app.core.security import get_current_user, get_current_admin_user
 from app.models.user import User
 from typing import Dict
+from datetime import datetime, timedelta, timezone
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -45,8 +46,9 @@ def get_verification_stats(
     
     # Count organizations expiring soon (within 7 days from now)
     # Organizations verified between 23-30 days ago will expire in the next 7 days
-    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
-    twenty_three_days_ago = datetime.utcnow() - timedelta(days=23)
+    now = datetime.now(timezone.utc)
+    thirty_days_ago = now - timedelta(days=30)
+    twenty_three_days_ago = now - timedelta(days=23)
     expiring_soon = db.query(Organization).filter(
         Organization.status == OrgStatus.APPROVED,
         Organization.verified_at >= twenty_three_days_ago,

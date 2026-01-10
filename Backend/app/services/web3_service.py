@@ -111,11 +111,11 @@ class Web3Service:
             # Convert maturity date to unix timestamp
             maturity_timestamp = int(maturity_date.timestamp())
             
-            # Prepare transaction
-            nonce = self.w3.eth.get_transaction_count(self.account.address)
-            
+            # Prepare transaction with proper nonce management
+            nonce = self.w3.eth.get_transaction_count(self.account.address, 'pending')
+
             # Build transaction
-            transaction = self.contract.functions.mintInvoice(
+            build_txn = self.contract.functions.mintInvoice(
                 Web3.to_checksum_address(seller_address),
                 invoice_id,
                 invoice_number,
@@ -126,22 +126,43 @@ class Web3Service:
                 maturity_timestamp,
                 Web3.to_checksum_address(buyer_address),
                 metadata_uri
-            ).build_transaction({
+            )
+
+            # Estimate gas first with buffer
+            try:
+                estimated_gas = build_txn.estimate_gas({
+                    'from': self.account.address,
+                    'to': self.contract_address
+                })
+                gas_limit = int(estimated_gas * 1.2)  # 20% buffer
+            except Exception as e:
+                print(f"Gas estimation failed: {e}, using default")
+                gas_limit = 500000
+
+            transaction = build_txn.build_transaction({
                 'chainId': self.chain_id,
-                'gas': 500000,
+                'gas': gas_limit,
                 'gasPrice': self.w3.eth.gas_price,
                 'nonce': nonce,
             })
-            
+
             # Sign transaction
             signed_txn = self.w3.eth.account.sign_transaction(transaction, private_key=self.private_key)
-            
+
             # Send transaction
             tx_hash = self.w3.eth.send_raw_transaction(signed_txn.rawTransaction)
             print(f"📤 Transaction sent: {tx_hash.hex()}")
             
-            # Wait for receipt
-            tx_receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
+            # Wait for receipt with timeout
+            try:
+                tx_receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
+            except Exception as e:
+                print(f"Timeout waiting for transaction receipt: {e}")
+                return {
+                    'success': False,
+                    'error': f'Transaction timeout: {str(e)}',
+                    'tx_hash': tx_hash.hex()
+                }
             
             if tx_receipt['status'] == 1:
                 # Get token ID from event logs

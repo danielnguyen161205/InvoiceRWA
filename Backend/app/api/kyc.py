@@ -296,6 +296,37 @@ def upload_document(org_id: int, payload: DocumentCreate, db: Session = Depends(
 
 @router.post("/organizations/{org_id}/upload", response_model=DocumentOut)
 def upload_file_and_register(org_id: int, file: UploadFile = File(...), uploaded_by: str = "", db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
+    # Allowed MIME types for document uploads
+    ALLOWED_MIME_TYPES = {
+        'application/pdf',
+        'image/jpeg',
+        'image/jpg',
+        'image/png',
+        'image/webp'
+    }
+
+    # Validate file extension against content type
+    filename = file.filename or ""
+    if not filename:
+        raise HTTPException(status_code=400, detail="Filename is required")
+
+    # Basic extension validation
+    allowed_extensions = {'.pdf', '.jpg', '.jpeg', '.png', '.webp'}
+    file_ext = '.' + filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
+    if file_ext.lower() not in allowed_extensions:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid file type. Allowed types: {', '.join(allowed_extensions)}"
+        )
+
+    # Validate content type
+    content_type = file.content_type or "application/octet-stream"
+    if content_type not in ALLOWED_MIME_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid content type '{content_type}'. Allowed types: {', '.join(ALLOWED_MIME_TYPES)}"
+        )
+
     org = db.query(Organization).filter(Organization.id == org_id).first()
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")

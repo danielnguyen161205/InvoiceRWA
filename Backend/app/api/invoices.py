@@ -28,6 +28,20 @@ def create_invoice(
     if "SME" not in roles:
         raise HTTPException(status_code=403, detail="Only SME can create invoice")
 
+    # Validate amount
+    if data.amount is None or data.amount <= 0:
+        raise HTTPException(status_code=400, detail="Amount must be a positive number")
+    if data.amount > 10_000_000_000:  # 10 billion
+        raise HTTPException(status_code=400, detail="Amount exceeds maximum allowed (10 billion)")
+
+    # Validate discount_rate
+    if data.discount_rate is not None and data.discount_rate < 0:
+        raise HTTPException(status_code=400, detail="Discount rate cannot be negative")
+
+    # Validate payment_term
+    if data.payment_term is not None and data.payment_term <= 0:
+        raise HTTPException(status_code=400, detail="Payment term must be positive")
+
     # Find buyer_id from buyer_org_id
     buyer_user_id = None
     if data.buyer_org_id:
@@ -41,29 +55,34 @@ def create_invoice(
         if buyer_user:
             buyer_user_id = buyer_user.id
 
-    invoice = Invoice(
-        invoice_number=data.invoice_number,
-        serial_no=data.serial_no,
-        issue_date=data.issue_date,
-        lookup_code=data.lookup_code,
-        amount=data.amount,
-        currency=data.currency,
-        buyer_name=data.buyer_name,
-        buyer_org_id=data.buyer_org_id,
-        buyer_id=buyer_user_id,  # Set buyer_id from org lookup
-        funding_category=data.funding_category,
-        funding_purpose=data.funding_purpose,
-        recourse_type=data.recourse_type,
-        payment_term=data.payment_term,
-        proposed_ltv=data.proposed_ltv,
-        discount_rate=data.discount_rate,
-        dispute_method=data.dispute_method,
-        sme_id=int(user["sub"]),
-    )
-    db.add(invoice)
-    db.commit()
-    db.refresh(invoice)
-    return invoice
+    # Use database transaction for atomicity
+    try:
+        invoice = Invoice(
+            invoice_number=data.invoice_number,
+            serial_no=data.serial_no,
+            issue_date=data.issue_date,
+            lookup_code=data.lookup_code,
+            amount=data.amount,
+            currency=data.currency,
+            buyer_name=data.buyer_name,
+            buyer_org_id=data.buyer_org_id,
+            buyer_id=buyer_user_id,  # Set buyer_id from org lookup
+            funding_category=data.funding_category,
+            funding_purpose=data.funding_purpose,
+            recourse_type=data.recourse_type,
+            payment_term=data.payment_term,
+            proposed_ltv=data.proposed_ltv,
+            discount_rate=data.discount_rate,
+            dispute_method=data.dispute_method,
+            sme_id=int(user["sub"]),
+        )
+        db.add(invoice)
+        db.commit()
+        db.refresh(invoice)
+        return invoice
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to create invoice: {str(e)}")
 
 
 # VIEW ALL MY INVOICES (as SME or BUYER)

@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="author" content="Mazyar">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="../css/tailwind.generated.css" rel="stylesheet">
+    <link href="../css/style.css" rel="stylesheet">
+    <link href="../css/modal-animation.css" rel="stylesheet">
+    <title>Invoice Management Dashboard</title>
+</head>
+
+<body class="font-montserrat ">
+
+        <main class="bg-indigo-50/60 w-full py-10 px-3 sm:px-10">
+
+            <!-- Nav -->
+            <nav class="text-lg flex items-center justify-between content-center ">
+                <div class=" font-semibold text-xl text-gray-800 flex space-x-4 items-center">
+                    <a href="#">
+                        <span class="md:hidden">
+                            <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path>
+                            </svg>
+
+                        </span>
+                    </a>
+                    <span>Invoices</span>
+                    
+                    <!-- Tab Buttons -->
+                    <div class="flex space-x-1 ml-6 text-sm bg-gradient-to-r from-gray-200 to-gray-300 p-1 rounded-xl shadow-inner">
+                        <button id="smeTab" onclick="switchInvoiceView('sme')" class="px-5 py-2.5 rounded-lg font-semibold transition-all duration-200 bg-white text-indigo-600 shadow-sm">
+                            My Invoices
+                        </button>
+                        <button id="buyerTab" onclick="switchInvoiceView('buyer')" class="px-5 py-2.5 rounded-lg font-semibold transition-all duration-200 bg-transparent text-gray-600 hover:bg-white/50">
+                            To Pay
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex space-x-5 md:space-x-10 text-gray-500 items-center content-center text-base ">
+                    <!-- Manual Refresh Button -->
+                    <button onclick="manualRefresh()" id="manualRefreshBtn" title="Refresh invoices" class="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                    </button>
+                    
+                    <!-- Last Updated Indicator -->
+                    <div id="lastUpdated" class="hidden md:flex items-center text-xs text-gray-400">
+                        <svg class="h-3 w-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10" stroke-width="2"></circle>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6l4 2"></path>
+                        </svg>
+                        <span id="lastUpdatedTime">Just now</span>
+                    </div>
+                    
+                    <button onclick="openCreateInvoiceModal()" class="px-4 py-2 bg-indigo-100 rounded-md flex items-center space-x-2 text-indigo-500 hover:bg-indigo-200 cursor-pointer">Create Invoice
+                        <svg class="h-5 w-5 fill-indigo-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd"></path>
+                        </svg>
+                        <div class="hidden xs:block"><span class="hidden sm:inline-block">Create</span> New</div>
+                    </button>
+                    
+                    <!-- User Profile Dropdown -->
+                    <div class="relative">
+                        <button id="userMenuButton" onclick="toggleUserMenu()" class="flex items-center space-x-2 focus:outline-none">
+                            <img class="rounded-full w-10 h-10 border-2 border-indigo-200 hover:border-indigo-300 cursor-pointer" src="../images/avatar.png" alt="User Avatar">
+                            <svg class="h-4 w-4 text-gray-600 transition-transform duration-200" id="userMenuArrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        
+                        <!-- Dropdown Menu -->
+                        <div id="userDropdownMenu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-50 border border-gray-200">
+                            <a href="/pages/profile.html" class="flex items-center px-4 py-2 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
+                                <svg class="h-5 w-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                </svg>
+                                Profile
+                            </a>
+                            <button onclick="logout()" class="w-full flex items-center px-4 py-2 text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors">
+                                <svg class="h-5 w-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                                </svg>
+                                Logout
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </nav> <!-- /Nav -->
+
+            <!-- Filters Section -->
+            <section>
+                <div class="bg-rose-100/70 mt-12  rounded-xl px-5 sm:px-10  pt-8 pb-4 relative xl:bg-[url('../images/invoice.png')] bg-no-repeat bg-right bg-contain ">
+                    <div class="text-rose-400 font-semibold text-lg">All Invoices</div>
+
+
+                    <div class="mt-6 grid grid-cols-1 xs:grid-cols-2 gap-y-6  gap-x-6 md:flex md:space-x-6 md:gap-x-0 ">
+                        <!-- <div class="mt-6 grid grid-cols-4 max-w-max gap-x-6"> -->
+
+                        <!-- <div class="flex flex-col w-40 text-gray-700 text-sm space-y-2">
+                            <label for="start-date">Begin Date</label>
+                            <input id="startdate" type="date" value="2019-11-01"
+                                class="bg-indigo-800/80 text-white  px-4 py-3 rounded-lg ">
+                        </div> -->
+
+
+                       <div class="flex flex-col md:w-40  text-gray-600 text-sm space-y-2 font-semibold">
+
+                        <div class="flex flex-col md:w-64 text-gray-600 text-sm space-y-4 font-semibold">
+                            <div>
+                                <label for="startdate">Begin Date</label>
+                                <div class="inline-flex relative">
+                                    <input class="bg-indigo-800/80 text-white tracking-wider pl-4 pr-10 py-3 rounded-lg appearance-none w-full outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-300" id="startdate" name="startdate" type="date" >
+                                    <span class="absolute top-0 right-0 m-3 pointer-events-none text-white">
+                                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                        </svg>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label for="enddate">End Date</label>
+                                <div class="inline-flex relative">
+                                    <input class="bg-indigo-800/50 text-white tracking-wider pl-4 pr-10 py-3 rounded-lg appearance-none w-full outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-300" id="enddate" name="enddate" type="date" >
+                                    <span class="absolute top-0 right-0 m-3 pointer-events-none text-white">
+                                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                        </svg>
+                                    </span>
+                                </div>
+                                <div id="dateError" class="text-red-500 text-xs mt-1 hidden">End date must be the same or after Begin date.</div>
+                            </div>
+                        </div>
+
+
+
+                        <div class="flex flex-col md:w-40  text-gray-600 text-sm space-y-2 font-semibold">
+                            <label for="status">Status</label>
+                            <div class="inline-flex relative">
+                                <select class="bg-rose-400 text-white  px-4 py-3 rounded-lg appearance-none w-full outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-300" id="status" name="status">
+                                    <option value="ALL">ALL</option>
+                                    <option value="DRAFT">DRAFT</option>
+                                    <option value="EDITING">EDITING</option>
+                                    <option value="SUBMITTED">SUBMITTED</option>
+                                    <option value="APPROVED">APPROVED</option>
+                                    <option value="FINANCED">FINANCED</option>
+                                    <option value="SETTLED">SETTLED</option>
+                                    <option value="CLOSED">CLOSED</option>
+                                    <option value="DISPUTED">DISPUTED</option>
+                                    <option value="REJECTED">REJECTED</option>
+                                </select>
+                                <span class="absolute top-0 right-0 m-3 pointer-events-none text-white">
+                                    <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </span>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="mt-5 text-gray-500 text-sm ">
+                        * This data has been shown according to your given information
+                    </div>
+                </div>
+
+            </section> <!-- /Filters Section -->
+
+
+            <!-- Invoice List Table -->
+            <section class="">
+                <!-- SME Invoices Section -->
+                <div id="smeSection" class="mt-12">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">My Invoices</h2>
+                    
+                    <!-- SME stats -->
+                    <div class="mt-6 flex space-x-4 items-center text-sm">
+                        <div class="bg-white px-4 py-3 rounded-lg shadow">Total: <span id="totalInvoices-sme">0</span></div>
+                        <div class="bg-white px-4 py-3 rounded-lg shadow">Amount: <span id="totalAmount-sme">$0</span></div>
+                        <div class="bg-white px-4 py-3 rounded-lg shadow">Funded: <span id="fundedAmount-sme">$0</span></div>
+                    </div>
+
+                    <!-- SME Table Header -->
+                    <div class="invoice-table-row invoice-table-header bg-white mt-10 rounded-xl px-10 py-4 flex items-center text-sm font-semibold text-gray-600">
+                        <div class="text-left" style="width: 140px;">Invoice</div>
+                        <div class="text-left" style="width: 200px;">Buyer</div>
+                        <div class="text-center" style="width: 140px;">Amount</div>
+                        <div class="text-center" style="width: 140px;">Status</div>
+                        <div class="text-center" style="width: 120px;">NFT Status</div>
+                        <div class="text-center" style="width: 140px;">Created</div>
+                        <div class="text-center flex-1">Action</div>
+                    </div>
+
+                    <!-- SME Table Body -->
+                    <div id="smeInvoiceContainer" class="bg-white mt-5 rounded-xl text-sm text-gray-500 divide-y divide-indigo-50 overflow-x-auto shadow">
+                        <table class="w-full" id="invoiceTable-sme">
+                            <!-- rows injected by JS -->
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Buyer Invoices Section -->
+                <div id="buyerSection" class="mt-12" style="display: none;">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">Invoices to Pay</h2>
+                    
+                    <!-- Buyer stats -->
+                    <div class="mt-6 flex space-x-4 items-center text-sm">
+                        <div class="bg-white px-4 py-3 rounded-lg shadow">Total: <span id="totalInvoices-buyer">0</span></div>
+                        <div class="bg-white px-4 py-3 rounded-lg shadow">Amount: <span id="totalAmount-buyer">$0</span></div>
+                        <div class="bg-white px-4 py-3 rounded-lg shadow">Paid: <span id="paidAmount-buyer">$0</span></div>
+                    </div>
+
+                    <!-- Buyer Table Header -->
+                    <div class="invoice-table-row invoice-table-header bg-white mt-10 rounded-xl px-10 py-4 flex items-center text-sm font-semibold text-gray-600">
+                        <div class="text-left" style="width: 140px;">Invoice</div>
+                        <div class="text-left" style="width: 200px;">Seller</div>
+                        <div class="text-center" style="width: 140px;">Amount</div>
+                        <div class="text-center" style="width: 140px;">Status</div>
+                        <div class="text-center" style="width: 120px;">NFT Status</div>
+                        <div class="text-center" style="width: 140px;">Created</div>
+                        <div class="text-center flex-1">Action</div>
+                    </div>
+
+                    <!-- Buyer Table Body -->
+                    <div id="buyerInvoiceContainer" class="bg-white mt-5 rounded-xl text-sm text-gray-500 divide-y divide-indigo-50 overflow-x-auto shadow">
+                        <table class="w-full" id="invoiceTable-buyer">
+                            <!-- rows injected by JS -->
+                        </table>
+                    </div>
+                </div>
+            </section>
+            <!-- /Invoice List Table -->
+
+        </main>
+
+    </div>
+
+    <!-- Create Invoice Modal -->
+    <div id="createInvoiceModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; overflow-y: auto;" class="bg-gray-900 bg-opacity-75">
+        <div class="relative my-8 mx-auto p-8 border-0 w-11/12 max-w-6xl shadow-2xl rounded-2xl bg-white" style="min-height: min-content;">
+            <!-- Modal Header -->
+            <div class="flex justify-between items-center pb-6 border-b-2 border-gray-200 bg-white -mx-8 -mt-8 px-8 pt-8 rounded-t-2xl">
+                <div>
+                    <h3 class="text-3xl font-bold text-indigo-600">Tạo Hóa Đơn Mới</h3>
+                    <p class="text-sm text-gray-600 mt-1">Hợp đồng Bao Thanh Toán</p>
+                </div>
+                <button onclick="closeCreateInvoiceModal()" class="text-gray-400 hover:text-gray-600 transition-all duration-300 hover:rotate-90 hover:scale-110 p-2 hover:bg-white rounded-full">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <form id="createInvoiceForm" class="mt-8">
+                <!-- Tab Navigation -->
+                <div class="border-b-2 border-gray-200 mb-8">
+                    <nav class="flex space-x-1 -mb-px">
+                        <button type="button" onclick="switchTab('invoice')" id="tab-invoice" class="tab-btn py-3 px-6 border-b-4 border-indigo-500 font-semibold text-indigo-600 bg-white rounded-t-lg transition-all duration-200">
+                            <div class="flex items-center space-x-2">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                <span>Thông tin Hóa đơn</span>
+                            </div>
+                        </button>
+                        <button type="button" onclick="switchTab('contract')" id="tab-contract" class="tab-btn py-3 px-6 border-b-4 border-transparent font-semibold text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-t-lg transition-all duration-200">
+                            <div class="flex items-center space-x-2">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <span>Điều khoản Bao thanh toán</span>
+                            </div>
+                        </button>
+                    </nav>
+                </div>
+
+                <!-- Tab 1: Invoice Information -->
+                <div id="content-invoice" class="tab-content">
+                    <!-- Section: XML Upload -->
+                    <div class="bg-white p-6 rounded-xl border-2 border-gray-200 mb-6 shadow-sm hover:shadow-md transition-shadow">
+                        <div class="flex items-start space-x-3">
+                            <svg class="h-6 w-6 text-indigo-500 mt-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                            </svg>
+                            <div class="flex-1">
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">📄 Tải lên File XML Hóa Đơn Điện Tử (Tùy chọn)</label>
+                                <input type="file" id="xmlFile" accept=".xml" class="block w-full text-sm text-gray-600 file:mr-4 file:py-3 file:px-6 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 file:cursor-pointer file:shadow-md file:transition-all cursor-pointer">
+                                <p class="text-xs text-gray-500 mt-2">
+                                    Tự động điền thông tin từ XML hoặc nhập thủ công bên dưới
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section: Buyer Information -->
+                    <div class="bg-white p-6 rounded-xl border-2 border-gray-200 mb-6 shadow-sm hover:shadow-md transition-shadow">
+                        <h5 class="text-base font-bold text-gray-800 mb-4 flex items-center border-b pb-3">
+                            <svg class="h-5 w-5 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                            Thông Tin Bên Mua
+                        </h5>
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <label class="block text-sm font-semibold text-gray-700">Bên Mua (Buyer) <span class="text-red-500">*</span></label>
+                                <span id="buyerRefreshIndicator" class="hidden text-xs text-indigo-600 flex items-center">
+                                    <svg class="animate-spin h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Đang cập nhật...
+                                </span>
+                            </div>
+                            <select id="buyerOrgId" required class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-white hover:border-indigo-300 shadow-sm">
+                                <option value="">-- Chọn Buyer --</option>
+                                <!-- Options sẽ được load từ API -->
+                            </select>
+                            <p class="text-xs text-gray-500 mt-2 flex items-center">
+                                <svg class="h-4 w-4 mr-1 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                Chỉ hiển thị Buyer/SME đã KYC verified (cập nhật mỗi 30s)
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Section: Invoice Details -->
+                    <div class="bg-white p-6 rounded-xl border-2 border-gray-200 mb-6 shadow-sm hover:shadow-md transition-shadow">
+                        <h5 class="text-base font-bold text-gray-800 mb-4 flex items-center border-b pb-3">
+                            <svg class="h-5 w-5 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            Chi Tiết Hóa Đơn
+                        </h5>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Invoice Number -->
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Số Hóa Đơn <span class="text-red-500">*</span></label>
+                                <input type="text" id="invoiceNo" required placeholder="VD: 0001234" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-white hover:border-indigo-300 shadow-sm">
+                            </div>
+
+                            <!-- Serial Number -->
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Ký Hiệu <span class="text-red-500">*</span></label>
+                                <input type="text" id="serialNo" required placeholder="VD: C23TAA" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-white hover:border-indigo-300 shadow-sm">
+                            </div>
+
+                            <!-- Issue Date -->
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Ngày Lập <span class="text-red-500">*</span></label>
+                                <input type="date" id="issueDate" required class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-white hover:border-indigo-300 shadow-sm">
+                            </div>
+
+                            <!-- Lookup Code -->
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Mã Tra Cứu</label>
+                                <input type="text" id="lookupCode" placeholder="Mã tra cứu từ Cơ quan thuế" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-white hover:border-indigo-300 shadow-sm">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section: Financial Information -->
+                    <div class="bg-white p-6 rounded-xl border-2 border-gray-200 mb-6 shadow-sm hover:shadow-md transition-shadow">
+                        <h5 class="text-base font-bold text-gray-800 mb-4 flex items-center border-b pb-3">
+                            <svg class="h-5 w-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            Thông Tin Tài Chính
+                        </h5>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Invoice Value -->
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">💰 Giá Trị Hóa Đơn <span class="text-red-500">*</span></label>
+                                <input type="number" id="invoiceValue" required min="0" step="0.01" placeholder="1000000" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-white hover:border-indigo-300 shadow-sm">
+                            </div>
+
+                            <!-- Currency -->
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Loại Tiền <span class="text-red-500">*</span></label>
+                                <select id="currency" required class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-white hover:border-indigo-300 shadow-sm">
+                                    <option value="VND" selected>VND - Việt Nam Đồng</option>
+                                    <option value="USD">USD - US Dollar</option>
+                                    <option value="EUR">EUR - Euro</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Factoring Contract Terms -->
+                <div id="content-contract" class="tab-content hidden">
+                    <!-- Section: Funding Purpose -->
+                    <div class="bg-white p-6 rounded-xl border-2 border-gray-200 mb-6 shadow-sm hover:shadow-md transition-shadow">
+                        <h5 class="text-base font-bold text-gray-800 mb-4 flex items-center border-b pb-3">
+                            <svg class="h-5 w-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                            </svg>
+                            Mục Đích Bao Thanh Toán
+                        </h5>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Nhóm Mục Đích</label>
+                                <select id="fundingCategory" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-white shadow-sm">
+                                    <option value="">-- Chọn nhóm mục đích --</option>
+                                    <option value="working_capital">💼 Vốn lưu động</option>
+                                    <option value="expansion">📈 Mở rộng sản xuất kinh doanh</option>
+                                    <option value="purchase_materials">🏭 Mua nguyên vật liệu</option>
+                                    <option value="pay_salary">👥 Trả lương nhân viên</option>
+                                    <option value="other">📋 Khác</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Mô Tả Chi Tiết</label>
+                                <textarea id="fundingPurpose" rows="3" placeholder="Mô tả chi tiết mục đích sử dụng vốn" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-sm"></textarea>
+                                <p class="text-xs text-gray-500 mt-1">Theo quy định pháp luật Việt Nam, cần nêu rõ mục đích sử dụng vốn</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section: Contract Terms -->
+                    <div class="bg-white p-6 rounded-xl border-2 border-gray-200 mb-6 shadow-sm hover:shadow-md transition-shadow">
+                        <h5 class="text-base font-bold text-gray-800 mb-4 flex items-center border-b pb-3">
+                            <svg class="h-5 w-5 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            Điều Khoản Hợp Đồng
+                        </h5>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Recourse Type -->
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Loại Hình</label>
+                                <select id="recourseType" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-white hover:border-indigo-300 shadow-sm">
+                                    <option value="1" selected>✓ Có Truy Đòi (Recourse)</option>
+                                    <option value="0">✗ Không Truy Đòi (Non-recourse)</option>
+                                </select>
+                                <p class="text-xs text-gray-500 mt-2">Ở Việt Nam phổ biến là Có truy đòi</p>
+                            </div>
+
+                            <!-- Payment Term -->
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">⏱️ Hạn Thanh Toán (Ngày)</label>
+                                <input type="number" id="paymentTerm" min="1" max="365" placeholder="30" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-white hover:border-indigo-300 shadow-sm">
+                                <p class="text-xs text-gray-500 mt-2">Số ngày từ ngày lập hóa đơn đến đáo hạn</p>
+                            </div>
+
+                            <!-- Proposed LTV -->
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">📊 Tỷ Lệ Ứng - LTV (%)</label>
+                                <input type="number" id="proposedLtv" min="0" max="100" step="0.01" placeholder="80" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-white hover:border-indigo-300 shadow-sm">
+                                <p class="text-xs text-gray-500 mt-2">Tỷ lệ % giá trị hóa đơn được giải ngân trước</p>
+                            </div>
+
+                            <!-- Discount Rate -->
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">📈 Lãi Suất Chiết Khấu (%/năm)</label>
+                                <input type="number" id="discountRate" min="0" max="100" step="0.01" placeholder="12.5" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-white hover:border-indigo-300 shadow-sm">
+                                <p class="text-xs text-gray-500 mt-2">Lãi suất Seller chấp nhận trả cho Bank</p>
+                            </div>
+
+                            <!-- Dispute Method -->
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">⚖️ Giải Quyết Tranh Chấp</label>
+                                <input type="text" id="disputeMethod" value="VIAC" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-white hover:border-indigo-300 shadow-sm">
+                                <p class="text-xs text-gray-500 mt-2">Mặc định: VIAC - Trung tâm Trọng tài Quốc tế Việt Nam</p>
+                            </div>
+                        </div>
+                    </div>
+
+                        </div>
+                    </div>
+
+                    <!-- Section: Financial Summary -->
+                    <div class="bg-white p-6 rounded-xl border-2 border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                        <h5 class="text-lg font-bold text-gray-800 mb-5 flex items-center border-b pb-3">
+                            <svg class="h-6 w-6 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                            </svg>
+                            💎 Tóm Tắt Tài Chính
+                        </h5>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="bg-white p-4 rounded-lg shadow border-l-4 border-blue-500">
+                                <div class="text-xs text-gray-600 mb-1">Mệnh giá hóa đơn</div>
+                                <div id="summaryFaceValue" class="text-xl font-bold text-blue-600">0 VND</div>
+                            </div>
+                            <div class="bg-white p-4 rounded-lg shadow border-l-4 border-green-500">
+                                <div class="text-xs text-gray-600 mb-1">Số tiền ứng trước</div>
+                                <div id="summaryFundingRequest" class="text-xl font-bold text-green-600">0 VND</div>
+                            </div>
+                            <div class="bg-white p-4 rounded-lg shadow border-l-4 border-yellow-500">
+                                <div class="text-xs text-gray-600 mb-1">Dự trữ (giữ lại)</div>
+                                <div id="summaryReserve" class="text-xl font-bold text-yellow-600">0 VND</div>
+                            </div>
+                            <div class="bg-white p-4 rounded-lg shadow border-l-4 border-red-500">
+                                <div class="text-xs text-gray-600 mb-1">Phí chiết khấu (ước tính)</div>
+                                <div id="summaryDiscountFee" class="text-xl font-bold text-red-600">0 VND</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Modal Footer - Form Actions -->
+                    <div class="bg-white p-6 rounded-xl border-2 border-gray-200 shadow-sm hover:shadow-md transition-shadow mt-6">
+                        <div class="flex justify-end space-x-4">
+                            <button type="button" onclick="closeCreateInvoiceModal()" class="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold rounded-lg transition-all duration-200 shadow-sm hover:shadow">
+                                Hủy
+                            </button>
+                            <button type="submit" class="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold rounded-lg transition-all duration-200 shadow-sm hover:shadow">
+                                <span>Tạo Hóa Đơn</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+    </div>
+    <!-- /Create Invoice Modal -->
+
+    <!-- Invoice Detail Modal -->
+    <div id="invoiceDetailModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; overflow-y: auto;" class="bg-gray-900 bg-opacity-75">
+        <div class="relative my-8 mx-auto p-8 border-0 w-11/12 max-w-4xl shadow-2xl rounded-2xl bg-white">
+            <!-- Modal Header -->
+            <div class="flex justify-between items-center pb-6 border-b-2 border-gray-200">
+                <div>
+                    <h3 class="text-2xl font-bold text-indigo-600">📄 Chi Tiết Hóa Đơn</h3>
+                    <p class="text-sm text-gray-600 mt-1" id="invoiceDetailNumber"></p>
+                </div>
+                <button onclick="closeInvoiceDetailModal()" class="text-gray-400 hover:text-gray-600 transition-all hover:rotate-90">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="mt-6 space-y-6">
+                <!-- Invoice Information Section -->
+                <div class="bg-gradient-to-r from-indigo-50 to-purple-50 p-6 rounded-xl">
+                    <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                        <svg class="h-5 w-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        Thông Tin Hóa Đơn
+                    </h4>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <div class="bg-white p-4 rounded-lg shadow-sm">
+                            <label class="text-xs font-semibold text-gray-500 uppercase">Số Hóa Đơn</label>
+                            <p class="text-lg font-bold text-gray-800 mt-1" id="detailInvoiceNumber"></p>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow-sm">
+                            <label class="text-xs font-semibold text-gray-500 uppercase">Ký Hiệu</label>
+                            <p class="text-lg text-gray-800 mt-1" id="detailSerialNo">-</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow-sm">
+                            <label class="text-xs font-semibold text-gray-500 uppercase">Trạng Thái</label>
+                            <p class="text-lg mt-1" id="detailStatus"></p>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow-sm">
+                            <label class="text-xs font-semibold text-gray-500 uppercase">Ngày Lập</label>
+                            <p class="text-lg text-gray-800 mt-1" id="detailIssueDate">-</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow-sm">
+                            <label class="text-xs font-semibold text-gray-500 uppercase">Mã Tra Cứu</label>
+                            <p class="text-sm text-gray-600 mt-1" id="detailLookupCode">-</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow-sm">
+                            <label class="text-xs font-semibold text-gray-500 uppercase">Loại Tiền</label>
+                            <p class="text-lg text-gray-800 mt-1" id="detailCurrency">VND</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Financial Information -->
+                <div class="bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-xl">
+                    <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                        <svg class="h-5 w-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Thông Tin Tài Chính
+                    </h4>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-white p-4 rounded-lg shadow-sm col-span-2">
+                            <label class="text-xs font-semibold text-gray-500 uppercase">Bên Mua</label>
+                            <div class="mt-1">
+                                <p class="text-lg font-semibold text-gray-800" id="detailBuyer"></p>
+                                <div class="flex items-center space-x-4 mt-2 text-sm text-gray-600" id="detailBuyerUser" style="display: none;">
+                                    <div class="flex items-center space-x-2">
+                                        <svg class="h-4 w-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                        </svg>
+                                        <span>User: <span id="detailBuyerUserName" class="font-medium"></span></span>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <svg class="h-4 w-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 002 2z"></path>
+                                        </svg>
+                                        <span id="detailBuyerEmail"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow-sm">
+                            <label class="text-xs font-semibold text-gray-500 uppercase">Giá Trị Hóa Đơn</label>
+                            <p class="text-2xl font-bold text-green-600 mt-1" id="detailAmount"></p>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow-sm">
+                            <label class="text-xs font-semibold text-gray-500 uppercase">Ngày Tạo</label>
+                            <p class="text-lg text-gray-800 mt-1" id="detailCreated"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Factoring Contract Terms -->
+                <div id="factoringSection" class="bg-gradient-to-r from-blue-50 to-cyan-50 p-6 rounded-xl">
+                    <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                        <svg class="h-5 w-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Điều Khoản Bao Thanh Toán
+                    </h4>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <div class="bg-white p-4 rounded-lg shadow-sm">
+                            <label class="text-xs font-semibold text-gray-500 uppercase">Loại Hình</label>
+                            <p class="text-lg text-gray-800 mt-1" id="detailRecourseType">-</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow-sm">
+                            <label class="text-xs font-semibold text-gray-500 uppercase">Hạn Thanh Toán</label>
+                            <p class="text-lg text-gray-800 mt-1" id="detailPaymentTerm">-</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow-sm">
+                            <label class="text-xs font-semibold text-gray-500 uppercase">Tỷ Lệ Ứng (LTV)</label>
+                            <p class="text-lg text-gray-800 mt-1" id="detailLtv">-</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow-sm">
+                            <label class="text-xs font-semibold text-gray-500 uppercase">Lãi Suất</label>
+                            <p class="text-lg text-gray-800 mt-1" id="detailDiscountRate">-</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow-sm">
+                            <label class="text-xs font-semibold text-gray-500 uppercase">Mục Đích</label>
+                            <p class="text-sm text-gray-600 mt-1" id="detailFundingCategory">-</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow-sm">
+                            <label class="text-xs font-semibold text-gray-500 uppercase">Giải Quyết Tranh Chấp</label>
+                            <p class="text-sm text-gray-600 mt-1" id="detailDisputeMethod">-</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow-sm col-span-2 md:col-span-3">
+                            <label class="text-xs font-semibold text-gray-500 uppercase">Mô Tả Mục Đích</label>
+                            <p class="text-sm text-gray-700 mt-1" id="detailFundingPurpose">-</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NFT/Blockchain Information -->
+                <div id="nftInfoSection" style="display: none;" class="bg-gradient-to-r from-purple-50 to-indigo-50 p-6 rounded-xl border-2 border-purple-200">
+                    <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                        <svg class="h-5 w-5 mr-2 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/>
+                        </svg>
+                        NFT Information (Blockchain)
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-white p-4 rounded-lg shadow-sm">
+                            <label class="text-xs font-semibold text-gray-500 uppercase">Token ID</label>
+                            <p class="text-lg font-mono text-purple-700 mt-1" id="detailTokenId">-</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow-sm">
+                            <label class="text-xs font-semibold text-gray-500 uppercase">Token Standard</label>
+                            <p class="text-lg text-gray-800 mt-1" id="detailTokenStandard">-</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow-sm col-span-2">
+                            <label class="text-xs font-semibold text-gray-500 uppercase">Contract Address</label>
+                            <p class="text-sm font-mono text-gray-600 mt-1 break-all" id="detailContractAddress">-</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow-sm col-span-2">
+                            <label class="text-xs font-semibold text-gray-500 uppercase">Transaction Hash</label>
+                            <p class="text-sm font-mono text-gray-600 mt-1 break-all" id="detailTxHash">-</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow-sm">
+                            <label class="text-xs font-semibold text-gray-500 uppercase">Tokenized At</label>
+                            <p class="text-sm text-gray-700 mt-1" id="detailTokenizedAt">-</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="mt-8 flex justify-between items-center">
+                <div id="buyerActionInfo" style="display: none;" class="text-sm text-gray-600 flex items-center">
+                    <svg class="h-5 w-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Bấm "Chấp Nhận" để xác nhận hóa đơn này 
+                    hoặc "Sửa" để chỉnh sửa
+                </div>
+                <div class="flex space-x-3 ml-auto">
+                    <button onclick="closeInvoiceDetailModal()" class="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold rounded-lg transition-all shadow-sm hover:shadow">
+                        Đóng
+                    </button>
+                    <button id="editInvoiceBtn" style="display: none;" class="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold rounded-lg transition-all shadow-sm hover:shadow">
+                        
+                        Sửa
+                    </button>
+                    <button id="submitInvoiceBtn" style="display: none;" class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-all shadow-sm hover:shadow">
+                        
+                        Chấp Nhận
+                    </button>
+                    <button id="markAsPaidBtn" style="display: none;" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-all shadow-sm hover:shadow">
+                       Paid
+                    </button>
+                    <button id="disputeInvoiceBtn" style="display: none;" onclick="openDisputeModal()" class="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-all shadow-sm hover:shadow flex items-center gap-2">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                        Dispute
+                    </button>
+                    <button id="mintNFTBtn" style="display: none;" onclick="mintInvoiceNFT()" class="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold rounded-lg transition-all shadow-sm hover:shadow flex items-center gap-2">
+                        Mint NFT
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- /Invoice Detail Modal -->
+
+    <!-- Invoice Edit Modal (for Buyer) -->
+    <div id="invoiceEditModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 10000; overflow-y: auto;" class="bg-gray-900 bg-opacity-75">
+        <div class="relative my-8 mx-auto p-8 border-0 w-11/12 max-w-3xl shadow-2xl rounded-2xl bg-white">
+            <!-- Modal Header -->
+            <div class="flex justify-between items-center pb-6 border-b-2 border-gray-200">
+                <div>
+                    <h3 class="text-2xl font-bold text-indigo-600">✏️ Edit Invoice</h3>
+                    <p class="text-sm text-gray-600 mt-1" id="editInvoiceNumber"></p>
+                </div>
+                <button onclick="closeEditModal()" class="text-gray-400 hover:text-gray-600 transition-all hover:rotate-90">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Modal Body - Editable Fields -->
+            <div class="mt-6 space-y-6">
+                <!-- Basic Invoice Info -->
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <h4 class="text-md font-bold text-gray-800 mb-4 flex items-center">
+                        <svg class="h-5 w-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        Thông Tin Cơ Bản
+                    </h4>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Serial Number</label>
+                            <input type="text" id="editSerialNo" class="w-full px-4 py-3 border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Issue Date</label>
+                            <input type="date" id="editIssueDate" class="w-full px-4 py-3 border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Lookup Code</label>
+                            <input type="text" id="editLookupCode" class="w-full px-4 py-3 border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Currency</label>
+                            <select id="editCurrency" class="w-full px-4 py-3 border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <option value="VND">VND</option>
+                                <option value="USD">USD</option>
+                                <option value="EUR">EUR</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Buyer Name</label>
+                            <input type="text" id="editBuyerName" class="w-full px-4 py-3 border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Amount</label>
+                            <input type="number" id="editAmount" step="0.01" class="w-full px-4 py-3 border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Factoring Contract Terms -->
+                <div class="bg-green-50 p-4 rounded-lg">
+                    <h4 class="text-md font-bold text-gray-800 mb-4 flex items-center">
+                        <svg class="h-5 w-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Điều Khoản Bao Thanh Toán
+                    </h4>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Recourse Type</label>
+                            <select id="editRecourseType" class="w-full px-4 py-3 border-2 border-green-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                                <option value="1">✓ Có Truy Đòi (With Recourse)</option>
+                                <option value="0">✗ Không Truy Đòi (Without Recourse)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Payment Term (days)</label>
+                            <input type="number" id="editPaymentTerm" class="w-full px-4 py-3 border-2 border-green-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">LTV (%)</label>
+                            <input type="number" id="editLtv" step="0.01" class="w-full px-4 py-3 border-2 border-green-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Discount Rate (%/year)</label>
+                            <input type="number" id="editDiscountRate" step="0.01" class="w-full px-4 py-3 border-2 border-green-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Funding Category</label>
+                            <select id="editFundingCategory" class="w-full px-4 py-3 border-2 border-green-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                                <option value="working_capital">💼 Vốn lưu động</option>
+                                <option value="expansion">📈 Mở rộng sản xuất kinh doanh</option>
+                                <option value="purchase_materials">🏭 Mua nguyên vật liệu</option>
+                                <option value="pay_salary">👥 Trả lương nhân viên</option>
+                                <option value="other">📋 Khác</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Dispute Resolution Method</label>
+                            <input type="text" id="editDisputeMethod" class="w-full px-4 py-3 border-2 border-green-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Funding Purpose Description</label>
+                            <textarea id="editFundingPurpose" rows="2" class="w-full px-4 py-3 border-2 border-green-300 rounded-lg focus:ring-2 focus:ring-green-500"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Edit Note -->
+                <div class="bg-yellow-50 p-4 rounded-lg">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Edit Note <span class="text-red-500">*</span></label>
+                    <textarea id="editNote" rows="3" placeholder="Describe what you changed..." class="w-full px-4 py-3 border-2 border-yellow-300 rounded-lg focus:ring-2 focus:ring-yellow-500" required></textarea>
+                    <p class="text-sm text-yellow-700 mt-2">
+                        ⚠️ After saving, invoice status will change to <strong>EDITING</strong> and supplier must approve your changes.
+                    </p>
+                </div>
+            </div>
+               
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="mt-8 flex justify-end space-x-3">
+                <button onclick="closeEditModal()" class="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold rounded-lg transition-all shadow-sm hover:shadow">
+                    Cancel
+                </button>
+                <button onclick="saveInvoiceChanges()" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-all shadow-sm hover:shadow">
+                    <svg class="inline h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- /Invoice Edit Modal -->
+
+    <!-- Dispute Modal -->
+    <div id="disputeModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 10001; overflow-y: auto;" class="bg-gray-900 bg-opacity-75">
+        <div class="relative my-8 mx-auto p-8 border-0 w-11/12 max-w-3xl shadow-2xl rounded-2xl bg-white">
+            <!-- Modal Header -->
+            <div class="flex justify-between items-center pb-6 border-b-2 border-red-200">
+                <div>
+                    <h3 class="text-2xl font-bold text-red-600 flex items-center gap-2">
+                        <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                        Dispute Invoice
+                    </h3>
+                    <p class="text-sm text-gray-600 mt-1" id="disputeInvoiceNumber"></p>
+                </div>
+                <button onclick="closeDisputeModal()" class="text-gray-400 hover:text-gray-600 transition-all hover:rotate-90">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="mt-6 space-y-6">
+                <!-- Warning Banner -->
+                <div id="disputeWarningBanner" class="bg-red-50 border-l-4 border-red-600 p-4 rounded-lg">
+                    <div class="flex items-start">
+                        <svg class="h-6 w-6 text-red-600 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                        <div class="flex-1">
+                            <p class="text-sm font-semibold text-red-800" id="disputeWarningTitle">Warning</p>
+                            <p class="text-sm text-red-700 mt-1" id="disputeWarningMessage">This action will block further processing.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Invoice Status Info -->
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h4 class="text-sm font-bold text-gray-700 mb-2">Invoice Information</h4>
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <span class="text-gray-600">Current Status:</span>
+                            <span class="ml-2 font-semibold" id="disputeCurrentStatus"></span>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Amount:</span>
+                            <span class="ml-2 font-semibold" id="disputeAmount"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dispute Reason -->
+                <div class="bg-white p-4 rounded-lg border-2 border-red-200">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Dispute Reason <span class="text-red-600">*</span>
+                    </label>
+                    <select id="disputeReasonCode" required class="w-full px-4 py-3 border-2 border-red-300 rounded-lg focus:ring-2 focus:ring-red-500">
+                        <option value="">-- Select a reason --</option>
+                        <option value="QUALITY_ISSUE">📦 Quality Issue - Hàng hóa không đạt chất lượng</option>
+                        <option value="QUANTITY_MISMATCH">🔢 Quantity Mismatch - Số lượng không khớp</option>
+                        <option value="LATE_DELIVERY">⏰ Late Delivery - Giao hàng trễ</option>
+                        <option value="WRONG_ITEMS">❌ Wrong Items - Sai hàng hóa</option>
+                        <option value="DAMAGED_GOODS">💔 Damaged Goods - Hàng hóa bị hư hỏng</option>
+                        <option value="INVOICE_ERROR">📝 Invoice Error - Sai sót trên hóa đơn</option>
+                        <option value="CONTRACT_VIOLATION">⚖️ Contract Violation - Vi phạm hợp đồng</option>
+                        <option value="OTHER">📋 Other - Lý do khác</option>
+                    </select>
+                </div>
+
+                <!-- Dispute Description -->
+                <div class="bg-white p-4 rounded-lg border-2 border-red-200">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Detailed Description <span class="text-red-600">*</span>
+                    </label>
+                    <textarea id="disputeDescription" rows="4" required 
+                        placeholder="Please provide detailed information about the dispute..."
+                        class="w-full px-4 py-3 border-2 border-red-300 rounded-lg focus:ring-2 focus:ring-red-500"></textarea>
+                    <p class="text-xs text-gray-500 mt-2">Minimum 20 characters required</p>
+                </div>
+
+                <!-- Evidence Upload (Only for FINANCED invoices) -->
+                <div id="evidenceUploadSection" style="display: none;" class="bg-amber-50 p-4 rounded-lg border-2 border-amber-300">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Supporting Evidence <span class="text-red-600">*</span> (Required for financed invoices)
+                    </label>
+                    <input type="file" id="disputeEvidenceFiles" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                        class="block w-full text-sm text-gray-600 file:mr-4 file:py-3 file:px-6 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-amber-600 file:text-white hover:file:bg-amber-700 file:cursor-pointer file:shadow-md cursor-pointer">
+                    <p class="text-xs text-amber-700 mt-2">
+                        ⚠️ <strong>Required documents:</strong> Inspection report, photos, meeting minutes, or other proof
+                    </p>
+                    <div id="evidenceFilesList" class="mt-3 space-y-2"></div>
+                </div>
+
+                <!-- Impact Notice -->
+                <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-lg">
+                    <p class="text-sm font-semibold text-yellow-800">⚠️ Impact of Dispute:</p>
+                    <ul class="text-sm text-yellow-700 mt-2 space-y-1 ml-4 list-disc" id="disputeImpactList">
+                        <li>Invoice status will change to <strong>DISPUTED</strong></li>
+                        <li>Notification will be sent to supplier and bank</li>
+                        <li>Case management will be initiated</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="mt-8 flex justify-end space-x-3">
+                <button onclick="closeDisputeModal()" class="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold rounded-lg transition-all shadow-sm hover:shadow">
+                    Cancel
+                </button>
+                <button onclick="submitDispute()" class="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-all shadow-sm hover:shadow flex items-center gap-2">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                    Submit Dispute
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- /Dispute Modal -->
+
+            <!-- API + Auth Guard + Dashboard scripts -->
+            <script src="../js/api.js"></script>
+            <script src="../js/auth-guard.js"></script>
+            <script src="../js/dashboard.js"></script>
+            <script src="../js/create-invoice.js"></script>
+            <script src="../js/dispute.js"></script>
+            
+            <script>
+                // Toggle User Dropdown Menu
+                function toggleUserMenu() {
+                    const dropdown = document.getElementById('userDropdownMenu');
+                    const arrow = document.getElementById('userMenuArrow');
+                    
+                    if (dropdown.classList.contains('hidden')) {
+                        dropdown.classList.remove('hidden');
+                        arrow.style.transform = 'rotate(180deg)';
+                    } else {
+                        dropdown.classList.add('hidden');
+                        arrow.style.transform = 'rotate(0deg)';
+                    }
+                }
+
+                // Close dropdown when clicking outside
+                document.addEventListener('click', function(event) {
+                    const userMenuButton = document.getElementById('userMenuButton');
+                    const dropdown = document.getElementById('userDropdownMenu');
+                    const arrow = document.getElementById('userMenuArrow');
+                    
+                    if (userMenuButton && !userMenuButton.contains(event.target) && !dropdown.contains(event.target)) {
+                        dropdown.classList.add('hidden');
+                        arrow.style.transform = 'rotate(0deg)';
+                    }
+                });
+
+                // Logout function
+                function logout() {
+                    localStorage.removeItem('token');
+                    window.location.href = '/pages/login.html';
+                }
+
+                // Function to switch between SME and Buyer invoice views
+                function switchInvoiceView(view) {
+                    console.log('🔄 Switching to view:', view);
+                    
+                    // Update current view tracker
+                    if (typeof currentView !== 'undefined') {
+                        currentView = view;
+                    }
+                    
+                    const smeSection = document.getElementById('smeSection');
+                    const buyerSection = document.getElementById('buyerSection');
+                    const smeTab = document.getElementById('smeTab');
+                    const buyerTab = document.getElementById('buyerTab');
+                    
+                    if (view === 'sme') {
+                        // Show SME, hide Buyer
+                        smeSection.style.display = 'block';
+                        buyerSection.style.display = 'none';
+                        
+                        // Update tab styles
+                        smeTab.className = 'px-5 py-2.5 rounded-lg font-semibold transition-all duration-200 bg-white text-indigo-600 shadow-sm';
+                        buyerTab.className = 'px-5 py-2.5 rounded-lg font-semibold transition-all duration-200 bg-transparent text-gray-600 hover:bg-white/50';
+                    } else if (view === 'buyer') {
+                        // Show Buyer, hide SME
+                        smeSection.style.display = 'none';
+                        buyerSection.style.display = 'block';
+                        
+                        // Update tab styles
+                        smeTab.className = 'px-5 py-2.5 rounded-lg font-semibold transition-all duration-200 bg-transparent text-gray-600 hover:bg-white/50';
+                        buyerTab.className = 'px-5 py-2.5 rounded-lg font-semibold transition-all duration-200 bg-white text-indigo-600 shadow-sm';
+                    }
+                    
+                    // Trigger a refresh to ensure data is up to date
+                    if (typeof loadDashboard === 'function') {
+                        loadDashboard();
+                    }
+                }
+            </script>
+
+        </body>
+
+        </html>

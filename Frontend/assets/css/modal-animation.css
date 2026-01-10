@@ -1,0 +1,63 @@
+/**
+ * Modal Animation Styles
+ * Tạo hiệu ứng mượt mà cho modal
+ */
+
+/* Modal overlay - initial hidden state */
+#createInvoiceModal {
+    /* backdrop-filter removed for clearer view */
+}
+
+/* Modal content initial position */
+#createInvoiceModal .relative {
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+/* Tab animations */
+.tab-content {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Focus ring improvements */
+#createInvoiceModal input:focus,
+#createInvoiceModal select:focus,
+#createInvoiceModal textarea:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+/* Button hover effects */
+#createInvoiceModal button[type="submit"]:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+}
+
+#createInvoiceModal button[type="submit"]:active {
+    transform: translateY(0);
+}
+
+/* Close button hover effect */
+#createInvoiceModal .text-gray-400:hover {
+    transform: rotate(90deg);
+    transition: transform 0.3s ease;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    #createInvoiceModal .relative {
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+}

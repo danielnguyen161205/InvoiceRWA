@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<title>Buyer Area | Invoice RWA</title>
+	<link rel="stylesheet" href="../css/tailwind.generated.css">
+	<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+	<header class="header">
+		<h2>Buyer Dashboard</h2>
+		<button onclick="logout()">Logout</button>
+	</header>
+
+	<main>
+		<p>Welcome buyer — view invoices and make purchases here.</p>
+	</main>
+
+	<script src="../js/auth-guard.js"></script>
+	<script src="../js/api.js"></script>
+	<script>
+		const token = localStorage.getItem('token');
+		if (!token) location.href = '/pages/login.html';
+		const payload = JSON.parse(atob(token.split('.')[1]));
+		const roles = payload.roles || (payload.role ? [payload.role] : []);
+		if (!roles.includes('BUYER')) {
+			alert('Access denied: BUYER only');
+			location.href = '/pages/login.html';
+		}
+	</script>
+</body>
+</html>

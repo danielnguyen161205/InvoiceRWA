@@ -415,17 +415,10 @@ class ApiError extends Error {
   }
 }
 
-// Global API client instance
-export const api = new ApiClient();
-
-// Export for non-module scripts
+// Global API client instance and export for non-module scripts
 if (typeof window !== 'undefined') {
-  window.api = api;
-  window.ApiError = ApiError;
+  window.api = new ApiClient();
   // Backwards compatibility
-  window.apiFetch = (url, options) => api.fetch(url, options);
-  window.API_URL = api.baseURL;
+  window.apiFetch = (url, options) => window.api.fetch(url, options);
+  window.API_URL = window.api.baseURL;
 }
-
-export { ApiError };
-export default api;

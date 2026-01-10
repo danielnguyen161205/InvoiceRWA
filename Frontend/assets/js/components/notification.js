@@ -255,17 +255,12 @@ class NotificationManager {
   }
 }
 
-// Global instance
-export const notification = new NotificationManager();
-
-// Auto-export for non-module scripts
+// Global instance and export for non-module scripts
 if (typeof window !== 'undefined') {
-  window.notification = notification;
+  window.notification = new NotificationManager();
   // Convenience alias
-  window.toast = notification;
+  window.toast = window.notification;
   // Replace alert with better alternatives
-  window showAlert = (message, type = 'info') => notification.show(message, type);
-  window.showConfirm = (message) => notification.confirm(message);
+  window.showAlert = (message, type = 'info') => window.notification.show(message, type);
+  window.showConfirm = (message) => window.notification.confirm(message);
 }
-
-export default notification;

@@ -215,15 +215,10 @@ class ErrorHandler {
   }
 }
 
-// Global instance
-export const errorHandler = new ErrorHandler();
-
-// Export for non-module scripts
+// Global instance and export for non-module scripts
 if (typeof window !== 'undefined') {
-  window.errorHandler = errorHandler;
+  window.errorHandler = new ErrorHandler();
   // Convenience functions
-  window.handleError = (error, context) => errorHandler.handleError(error, context);
-  window.wrapAsync = (fn, context) => errorHandler.wrap(fn, context);
+  window.handleError = (error, context) => window.errorHandler.handleError(error, context);
+  window.wrapAsync = (fn, context) => window.errorHandler.wrap(fn, context);
 }
-
-export default errorHandler;

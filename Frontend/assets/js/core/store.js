@@ -171,12 +171,7 @@ class AppState {
   }
 }
 
-// Global store instance
-export const store = new AppState();
-
-// Auto-export for backwards compatibility with non-module scripts
+// Global store instance and export for non-module scripts
 if (typeof window !== 'undefined') {
-  window.appStore = store;
+  window.appStore = new AppState();
 }
-
-export default store;

@@ -23,7 +23,7 @@ class Sanitizer {
   /**
    * Unescape HTML special characters
    */
-  unescapeHtml safe) {
+  unescapeHtml(safe) {
     const div = document.createElement('div');
     div.innerHTML = safe;
     return div.textContent || div.innerText || '';
@@ -258,17 +258,12 @@ class Sanitizer {
   }
 }
 
-// Global instance
-export const sanitizer = new Sanitizer();
-
-// Export for non-module scripts
+// Global instance and export for non-module scripts
 if (typeof window !== 'undefined') {
-  window.sanitizer = sanitizer;
+  window.sanitizer = new Sanitizer();
   // Convenience functions
-  window.escapeHtml = (text) => sanitizer.escapeHtml(text);
-  window.sanitizeHtml = (html) => sanitizer.sanitizeHtml(html);
-  window.sanitizeUrl = (url) => sanitizer.sanitizeUrl(url);
-  window.setSafeHTML = (el, html) => sanitizer.setHTML(el, html);
+  window.escapeHtml = (text) => window.sanitizer.escapeHtml(text);
+  window.sanitizeHtml = (html) => window.sanitizer.sanitizeHtml(html);
+  window.sanitizeUrl = (url) => window.sanitizer.sanitizeUrl(url);
+  window.setSafeHTML = (el, html) => window.sanitizer.setHTML(el, html);
 }
-
-export default sanitizer;

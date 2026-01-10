@@ -394,16 +394,11 @@ class Validators {
   }
 }
 
-// Global instance
-export const validator = new Validators();
-
-// Export for non-module scripts
+// Global instance and export for non-module scripts
 if (typeof window !== 'undefined') {
-  window.validator = validator;
+  window.validator = new Validators();
   // Convenience functions
-  window.validateRequired = (value) => validator.required(value);
-  window.validateEmail = (value) => validator.email(value);
-  window.validatePhone = (value) => validator.phone(value);
+  window.validateRequired = (value) => window.validator.required(value);
+  window.validateEmail = (value) => window.validator.email(value);
+  window.validatePhone = (value) => window.validator.phone(value);
 }
-
-export default validator;

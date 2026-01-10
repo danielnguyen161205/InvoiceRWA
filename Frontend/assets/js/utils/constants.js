@@ -4,7 +4,7 @@
  */
 
 // API Configuration
-export const API_CONFIG = {
+const API_CONFIG = {
   BASE_URL: 'http://127.0.0.1:8000',
   TIMEOUT: 30000,
   MAX_RETRIES: 3,
@@ -13,7 +13,7 @@ export const API_CONFIG = {
 };
 
 // User Roles
-export const USER_ROLES = {
+const USER_ROLES = {
   ADMIN: 'ADMIN',
   SME: 'SME',
   BUYER: 'BUYER',
@@ -21,7 +21,7 @@ export const USER_ROLES = {
 };
 
 // Invoice Statuses
-export const INVOICE_STATUS = {
+const INVOICE_STATUS = {
   DRAFT: 'DRAFT',
   EDITING: 'EDITING',
   SUBMITTED: 'SUBMITTED',
@@ -33,7 +33,7 @@ export const INVOICE_STATUS = {
 };
 
 // Organization Statuses
-export const ORG_STATUS = {
+const ORG_STATUS = {
   PENDING: 'PENDING',
   UNDER_REVIEW: 'UNDER_REVIEW',
   APPROVED: 'APPROVED',
@@ -41,14 +41,14 @@ export const ORG_STATUS = {
 };
 
 // Organization Types
-export const ORG_TYPES = {
+const ORG_TYPES = {
   SME: 'SME',
   BUYER: 'BUYER',
   BANK: 'BANK'
 };
 
 // Funding Categories
-export const FUNDING_CATEGORIES = {
+const FUNDING_CATEGORIES = {
   WORKING_CAPITAL: 'working_capital',
   EXPANSION: 'expansion',
   PURCHASE_MATERIALS: 'purchase_materials',
@@ -57,20 +57,20 @@ export const FUNDING_CATEGORIES = {
 };
 
 // Recourse Types
-export const RECOURSE_TYPES = {
+const RECOURSE_TYPES = {
   WITH_RECOURSE: 1,
   WITHOUT_RECOURSE: 0
 };
 
 // Dispute Methods
-export const DISPUTE_METHODS = {
+const DISPUTE_METHODS = {
   VIAC: 'VIAC',
   COURT: 'COURT',
   ARBITRATION: 'ARBITRATION'
 };
 
 // Currency Codes
-export const CURRENCIES = {
+const CURRENCIES = {
   VND: 'VND',
   USD: 'USD',
   EUR: 'EUR',
@@ -80,7 +80,7 @@ export const CURRENCIES = {
 };
 
 // Page Routes
-export const ROUTES = {
+const ROUTES = {
   LOGIN: '/pages/login.html',
   REGISTER: '/pages/register.html',
   SME_DASHBOARD: '/pages/sme-dashboard.html',
@@ -96,7 +96,7 @@ export const ROUTES = {
 };
 
 // Dashboard routes by role
-export const DASHBOARD_ROUTES = {
+const DASHBOARD_ROUTES = {
   [USER_ROLES.ADMIN]: ROUTES.ADMIN_DASHBOARD,
   [USER_ROLES.BANK]: ROUTES.BANK_DASHBOARD,
   [USER_ROLES.SME]: ROUTES.SME_DASHBOARD,
@@ -104,7 +104,7 @@ export const DASHBOARD_ROUTES = {
 };
 
 // File Upload Limits
-export const FILE_UPLOAD = {
+const FILE_UPLOAD = {
   MAX_SIZE: 5 * 1024 * 1024, // 5MB
   ALLOWED_TYPES: [
     'image/jpeg',
@@ -117,13 +117,13 @@ export const FILE_UPLOAD = {
 };
 
 // Pagination
-export const PAGINATION = {
+const PAGINATION = {
   DEFAULT_PAGE_SIZE: 20,
   PAGE_SIZES: [10, 20, 50, 100]
 };
 
 // Date Formats
-export const DATE_FORMATS = {
+const DATE_FORMATS = {
   DISPLAY: 'DD/MM/YYYY',
   DISPLAY_WITH_TIME: 'DD/MM/YYYY HH:mm',
   ISO: 'YYYY-MM-DD',
@@ -131,7 +131,7 @@ export const DATE_FORMATS = {
 };
 
 // Regex Patterns
-export const PATTERNS = {
+const PATTERNS = {
   EMAIL: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
   PHONE_VN: /(84|0[3|5|7|8|9])+([0-9]{8})\b/,
   TAX_ID: /^\d{10}$/,
@@ -140,7 +140,7 @@ export const PATTERNS = {
 };
 
 // Error Messages
-export const ERROR_MESSAGES = {
+const ERROR_MESSAGES = {
   NETWORK_ERROR: 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.',
   UNAUTHORIZED: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
   FORBIDDEN: 'Bạn không có quyền thực hiện thao tác này.',
@@ -151,7 +151,7 @@ export const ERROR_MESSAGES = {
 };
 
 // Success Messages
-export const SUCCESS_MESSAGES = {
+const SUCCESS_MESSAGES = {
   LOGIN: 'Đăng nhập thành công!',
   LOGOUT: 'Đăng xuất thành công!',
   REGISTER: 'Đăng ký thành công!',
@@ -164,7 +164,7 @@ export const SUCCESS_MESSAGES = {
 };
 
 // Local Storage Keys
-export const STORAGE_KEYS = {
+const STORAGE_KEYS = {
   TOKEN: 'token',
   REFRESH_TOKEN: 'refreshToken',
   USER: 'user',
@@ -174,14 +174,14 @@ export const STORAGE_KEYS = {
 };
 
 // Session Storage Keys
-export const SESSION_KEYS = {
+const SESSION_KEYS = {
   TOKEN: 'token',
   LAST_ACTIVITY: 'lastActivity',
   REDIRECT_URL: 'redirectUrl'
 };
 
 // Notification Types
-export const NOTIFICATION_TYPES = {
+const NOTIFICATION_TYPES = {
   SUCCESS: 'success',
   ERROR: 'error',
   WARNING: 'warning',
@@ -189,14 +189,14 @@ export const NOTIFICATION_TYPES = {
 };
 
 // Auto-refresh Intervals (milliseconds)
-export const REFRESH_INTERVALS = {
+const REFRESH_INTERVALS = {
   DASHBOARD: 30000, // 30 seconds
     BUYER_LIST: 30000, // 30 seconds
   NOTIFICATIONS: 60000 // 1 minute
 };
 
 // Feature Flags
-export const FEATURES = {
+const FEATURES = {
   ENABLE_WEBCAM_SCAN: true,
   ENABLE_FILE_UPLOAD: true,
   ENABLE_I18N: true,
@@ -205,13 +205,13 @@ export const FEATURES = {
 };
 
 // Supported Languages
-export const LANGUAGES = {
+const LANGUAGES = {
   VI: 'vi',
   EN: 'en'
 };
 
 // Default Settings
-export const DEFAULT_SETTINGS = {
+const DEFAULT_SETTINGS = {
   language: LANGUAGES.VI,
   theme: 'light',
   notifications: true,
@@ -231,13 +231,30 @@ if (typeof window !== 'undefined') {
   };
 }
 
-export default {
-  API_CONFIG,
-  USER_ROLES,
-  INVOICE_STATUS,
-  ORG_STATUS,
-  ROUTES,
-  FILE_UPLOAD,
-  ERROR_MESSAGES,
-  SUCCESS_MESSAGES
-};
+// Export all constants to window for non-module scripts
+if (typeof window !== 'undefined') {
+  window.API_CONFIG = API_CONFIG;
+  window.USER_ROLES = USER_ROLES;
+  window.INVOICE_STATUS = INVOICE_STATUS;
+  window.ORG_STATUS = ORG_STATUS;
+  window.ORG_TYPES = ORG_TYPES;
+  window.FUNDING_CATEGORIES = FUNDING_CATEGORIES;
+  window.RECOURSE_TYPES = RECOURSE_TYPES;
+  window.DISPUTE_METHODS = DISPUTE_METHODS;
+  window.CURRENCIES = CURRENCIES;
+  window.ROUTES = ROUTES;
+  window.DASHBOARD_ROUTES = DASHBOARD_ROUTES;
+  window.FILE_UPLOAD = FILE_UPLOAD;
+  window.PAGINATION = PAGINATION;
+  window.DATE_FORMATS = DATE_FORMATS;
+  window.PATTERNS = PATTERNS;
+  window.ERROR_MESSAGES = ERROR_MESSAGES;
+  window.SUCCESS_MESSAGES = SUCCESS_MESSAGES;
+  window.STORAGE_KEYS = STORAGE_KEYS;
+  window.SESSION_KEYS = SESSION_KEYS;
+  window.NOTIFICATION_TYPES = NOTIFICATION_TYPES;
+  window.REFRESH_INTERVALS = REFRESH_INTERVALS;
+  window.FEATURES = FEATURES;
+  window.LANGUAGES = LANGUAGES;
+  window.DEFAULT_SETTINGS = DEFAULT_SETTINGS;
+}

@@ -254,46 +254,16 @@ class App {
   }
 }
 
-// Create and export global app instance
-export const app = new App();
-
-// Auto-initialize when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => app.init());
-} else {
-  app.init();
-}
-
-// Export for non-module scripts (global namespace)
+// Create global app instance and export for non-module scripts
 if (typeof window !== 'undefined') {
-  // Create a global window.app object
-  window.app = app;
+  window.app = new App();
 
-  // Export all utilities to global scope for backwards compatibility
-  window.store = store;
-  window.api = api;
-  window.notification = notification;
-  window.errorHandler = errorHandler;
-  window.formatter = formatter;
-  window.validator = validator;
-  window.sanitizer = sanitizer;
-  window.ApiError = ApiError;
-
-  // Export constants
-  Object.assign(window, constants);
-
-  // Convenience functions
-  window.requireAuth = () => app.requireAuth();
-  window.getCurrentUser = () => app.getCurrentUser();
-  window.hasRole = (role) => app.hasRole(role);
-  window.logout = () => app.logout();
-  window.redirectByRole = () => app.redirectByRole();
-
-  // Legacy compatibility
-  window.getToken = () => api.getToken();
-  window.logout = () => app.logout();
+  // Auto-initialize when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => window.app.init());
+  } else {
+    window.app.init();
+  }
 
   console.log('Invoice RWA Frontend modules loaded');
 }
-
-export default app;

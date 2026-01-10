@@ -211,16 +211,11 @@ class Formatters {
   }
 }
 
-// Global instance
-export const formatter = new Formatters();
-
-// Export for non-module scripts
+// Global instance and export for non-module scripts
 if (typeof window !== 'undefined') {
-  window.formatter = formatter;
+  window.formatter = new Formatters();
   // Convenience functions
-  window.formatVND = (amount) => formatter.formatVND(amount);
-  window.formatDate = (date) => formatter.formatDate(date);
-  window.formatDateTime = (date) => formatter.formatDateTime(date);
+  window.formatVND = (amount) => window.formatter.formatVND(amount);
+  window.formatDate = (date) => window.formatter.formatDate(date);
+  window.formatDateTime = (date) => window.formatter.formatDateTime(date);
 }
-
-export default formatter;

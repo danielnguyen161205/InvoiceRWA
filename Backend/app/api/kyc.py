@@ -9,10 +9,22 @@ from app.schemas.kyc import OrganizationCreate, OrganizationOut, DocumentCreate,
 from app.db.base import Base
 from typing import List
 import uuid
+import html
 from app.storage import save_file
 from app.core.security import get_current_user
 from app.storage import generate_presigned_url
 from app.models.audit import AuditLog, OrganizationReview
+
+
+def sanitize_string(text: str) -> str:
+    """
+    Sanitize string input to prevent XSS attacks.
+    Only allows basic safe characters, escapes HTML.
+    """
+    if not text:
+        return text
+    # Escape HTML characters to prevent XSS
+    return html.escape(text.strip())
 
 
 def audit_log(db: Session, actor_sub: str, actor_roles: str, action: str, target_type: str, target_id: str = None, comments: str = None):
@@ -34,44 +46,44 @@ def create_organization(payload: OrganizationCreate, db: Session = Depends(get_d
         # User already has an organization, update it instead
         existing_org = db.query(Organization).filter(Organization.id == db_user.organization_id).first()
         if existing_org:
-            # Update existing organization with new data
+            # Update existing organization with new data (with sanitization)
             existing_org.org_type = payload.org_type
-            existing_org.legal_name = payload.legal_name
-            existing_org.trade_name = payload.trade_name
-            existing_org.foreign_name = payload.foreign_name
-            existing_org.tax_id = payload.tax_id
-            existing_org.registration_number = payload.registration_number
-            existing_org.legal_form = payload.legal_form
-            existing_org.operation_status = payload.operation_status
+            existing_org.legal_name = sanitize_string(payload.legal_name)
+            existing_org.trade_name = sanitize_string(payload.trade_name)
+            existing_org.foreign_name = sanitize_string(payload.foreign_name)
+            existing_org.tax_id = sanitize_string(payload.tax_id)
+            existing_org.registration_number = sanitize_string(payload.registration_number)
+            existing_org.legal_form = sanitize_string(payload.legal_form)
+            existing_org.operation_status = sanitize_string(payload.operation_status)
             existing_org.establishment_date = payload.establishment_date
-            existing_org.legal_representative = payload.legal_representative
-            existing_org.address = payload.address
-            existing_org.tax_verification_status = payload.tax_verification_status
-            existing_org.bank_account_info = payload.bank_account_info
-            existing_org.authorized_persons_list = payload.authorized_persons_list
+            existing_org.legal_representative = sanitize_string(payload.legal_representative)
+            existing_org.address = sanitize_string(payload.address)
+            existing_org.tax_verification_status = sanitize_string(payload.tax_verification_status)
+            existing_org.bank_account_info = sanitize_string(payload.bank_account_info)
+            existing_org.authorized_persons_list = sanitize_string(payload.authorized_persons_list)
             existing_org.status = OrgStatus.PENDING  # Reset to pending for review
             
             db.commit()
             db.refresh(existing_org)
             return existing_org
     
-    # Create new organization with all KYB fields
+    # Create new organization with all KYB fields (with sanitization)
     org = Organization(
         uid=str(uuid.uuid4()),
         org_type=payload.org_type,
-        legal_name=payload.legal_name,
-        trade_name=payload.trade_name,
-        foreign_name=payload.foreign_name,
-        tax_id=payload.tax_id,
-        registration_number=payload.registration_number,
-        legal_form=payload.legal_form,
-        operation_status=payload.operation_status,
+        legal_name=sanitize_string(payload.legal_name),
+        trade_name=sanitize_string(payload.trade_name),
+        foreign_name=sanitize_string(payload.foreign_name),
+        tax_id=sanitize_string(payload.tax_id),
+        registration_number=sanitize_string(payload.registration_number),
+        legal_form=sanitize_string(payload.legal_form),
+        operation_status=sanitize_string(payload.operation_status),
         establishment_date=payload.establishment_date,
-        legal_representative=payload.legal_representative,
-        address=payload.address,
-        tax_verification_status=payload.tax_verification_status,
-        bank_account_info=payload.bank_account_info,
-        authorized_persons_list=payload.authorized_persons_list,
+        legal_representative=sanitize_string(payload.legal_representative),
+        address=sanitize_string(payload.address),
+        tax_verification_status=sanitize_string(payload.tax_verification_status),
+        bank_account_info=sanitize_string(payload.bank_account_info),
+        authorized_persons_list=sanitize_string(payload.authorized_persons_list),
         status=OrgStatus.PENDING,
     )
     db.add(org)

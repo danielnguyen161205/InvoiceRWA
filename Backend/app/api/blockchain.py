@@ -120,10 +120,23 @@ async def mint_invoice_nft(
                 detail=f"Failed to mint NFT: {result.get('error', 'Unknown error')}"
             )
             
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid input parameters for NFT minting"
+        )
+    except ConnectionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Blockchain service unavailable. Please try again later."
+        )
     except Exception as e:
+        # Log the actual error for debugging but don't expose to client
+        import logging
+        logging.error(f"Error minting NFT: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error minting NFT: {str(e)}"
+            detail="Failed to mint NFT. Please contact support if the issue persists."
         )
 
 @router.get("/token/{invoice_id}")
@@ -168,10 +181,22 @@ async def get_invoice_token(
             "explorer_url": f"https://etherscan.io/token/{invoice.nft_contract_address}?a={token_id}"
         }
         
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid token ID or invoice not found"
+        )
+    except ConnectionError:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Blockchain service unavailable. Please try again later."
+        )
     except Exception as e:
+        import logging
+        logging.error(f"Error fetching token data: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error fetching token data: {str(e)}"
+            detail="Failed to fetch token data. Please try again later."
         )
 
 @router.get("/status")

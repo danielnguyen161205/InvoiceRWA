@@ -438,6 +438,51 @@
                                         <li>✓ Đã cung cấp hồ sơ pháp lý và xác minh MST</li>
                                         <li>✓ Đã upload các tài liệu thẩm quyền bắt buộc</li>
                                         <li>✓ Đã kiểm tra MST tại tracuunnt.gdt.gov.vn</li>
+
+                                <!-- Bank Profile Information (Bank only) -->
+                                <div id="bankProfileSection" class="hidden bg-blue-50 p-6 rounded-lg border-2 border-blue-200 mt-6">
+                                    <h4 class="text-md font-semibold text-gray-800 mb-4 flex items-center">
+                                        <i class="ri-bank-line text-blue-600 mr-2"></i> Thông tin Profile Ngân hàng
+                                    </h4>
+                                    <div class="mb-4 p-3 bg-blue-100 border border-blue-200 rounded-lg">
+                                        <p class="text-sm text-blue-800">
+                                            <i class="ri-information-line"></i> 
+                                            <strong>Lưu ý:</strong> Thông tin này sẽ hiển thị cho SME khi họ gửi yêu cầu tài trợ đến ngân hàng của bạn.
+                                        </p>
+                                    </div>
+                                    
+                                    <div class="space-y-4">
+                                        <div>
+                                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                                <i class="ri-time-line"></i> Thời hạn giải ngân trung bình (số ngày)
+                                            </label>
+                                            <input id="bank_average_disbursement_days" type="number" min="1" max="365"
+                                                placeholder="Ví dụ: 7 (7 ngày)"
+                                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                            <small class="text-gray-500">Thời gian trung bình từ lúc duyệt đến khi giải ngân</small>
+                                        </div>
+                                        
+                                        <div>
+                                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                                <i class="ri-percent-line"></i> Lãi suất chiết khấu
+                                            </label>
+                                            <input id="bank_discount_interest_rate" type="text"
+                                                placeholder="Ví dụ: 8.5% hoặc 7.5% - 9.5%"
+                                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                            <small class="text-gray-500">Lãi suất chiết khấu hóa đơn (có thể ghi dạng khoảng)</small>
+                                        </div>
+                                        
+                                        <div>
+                                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                                <i class="ri-funds-line"></i> Phần trăm tài trợ trung bình
+                                            </label>
+                                            <input id="bank_average_financing_percentage" type="text"
+                                                placeholder="Ví dụ: 80% hoặc 70% - 85%"
+                                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                            <small class="text-gray-500">Phần trăm giá trị hóa đơn được tài trợ (có thể ghi dạng khoảng)</small>
+                                        </div>
+                                    </div>
+                                </div>
                                         <li>✓ Đã kiểm tra thông tin người đại diện tại dangkykinhdoanh.gov.vn</li>
                                     </ul>
                                 </div>
@@ -1120,6 +1165,18 @@
             const form = document.getElementById('kycOrgForm');
             const submitBtn = document.getElementById('kycSubmitBtn');
 
+            // Show/Hide Bank Profile Section for BANK users
+            const bankProfileSection = document.getElementById('bankProfileSection');
+            if (bankProfileSection) {
+                if (isBank) {
+                    bankProfileSection.classList.remove('hidden');
+                    // Load bank profile data from organization
+                    loadBankProfileData();
+                } else {
+                    bankProfileSection.classList.add('hidden');
+                }
+            }
+
             // Load KYC/UBO data when form is ready
             loadExistingKycUboData();
 
@@ -1285,6 +1342,14 @@
                         // Set org_type based on role
                         if (isBank) {
                             orgPayload.org_type = 'BANK';
+                            // Add bank profile fields for BANK users
+                            const disbursementDays = document.getElementById('bank_average_disbursement_days')?.value;
+                            const discountRate = document.getElementById('bank_discount_interest_rate')?.value;
+                            const financingPercentage = document.getElementById('bank_average_financing_percentage')?.value;
+                            
+                            if (disbursementDays) orgPayload.average_disbursement_days = parseInt(disbursementDays);
+                            if (discountRate) orgPayload.discount_interest_rate = discountRate;
+                            if (financingPercentage) orgPayload.average_financing_percentage = financingPercentage;
                         } else if (roles.includes('SME')) {
                             orgPayload.org_type = 'SME';
                         } else {
@@ -1548,6 +1613,32 @@
         
         let kycPersonsData = [];
         let shareholdersData = [];
+        
+        // Load Bank Profile Data
+        async function loadBankProfileData() {
+            const token = localStorage.getItem('token');
+            try {
+                const response = await fetch('http://127.0.0.1:8000/api/kyc/organizations/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    const org = await response.json();
+                    // Fill bank profile fields if data exists
+                    if (org.average_disbursement_days) {
+                        document.getElementById('bank_average_disbursement_days').value = org.average_disbursement_days;
+                    }
+                    if (org.discount_interest_rate) {
+                        document.getElementById('bank_discount_interest_rate').value = org.discount_interest_rate;
+                    }
+                    if (org.average_financing_percentage) {
+                        document.getElementById('bank_average_financing_percentage').value = org.average_financing_percentage;
+                    }
+                }
+            } catch (error) {
+                console.log('Could not load bank profile data:', error);
+            }
+        }
         
         // Load existing KYC/UBO data when page loads
         function loadExistingKycUboData() {

@@ -9,16 +9,18 @@
     <link href="../css/tailwind.generated.css" rel="stylesheet">
     <link href="../css/style.css" rel="stylesheet">
     <link href="../css/modal-animation.css" rel="stylesheet">
+    <link href="../css/professional-theme.css" rel="stylesheet">
+    <link href="../css/professional-components.css" rel="stylesheet">
     <script src="../js/i18n.js"></script>
     <title>Bank Dashboard - Invoice Marketplace</title>
 </head>
 
 <body class="font-montserrat">
 
-    <main class="bg-indigo-50/60 w-full py-10 px-3 sm:px-10">
+    <main class="bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 w-full py-10 px-3 sm:px-10 min-h-screen">
 
         <!-- Nav -->
-        <nav class="text-lg flex items-center justify-between content-center">
+        <nav class="pro-nav mb-8">
             <div class="font-semibold text-xl text-gray-800 flex space-x-4 items-center">
                 <a href="#">
                     <span class="md:hidden">
@@ -30,11 +32,11 @@
                 <span data-i18n="dashboard.invoiceMarketplace">Invoice Marketplace</span>
                 
                 <!-- Tab Buttons -->
-                <div class="flex space-x-1 ml-6 text-sm bg-gradient-to-r from-gray-200 to-gray-300 p-1 rounded-xl shadow-inner">
-                    <button id="availableTab" onclick="switchBankView('available')" class="px-5 py-2.5 rounded-lg font-semibold transition-all duration-200 bg-white text-indigo-600 shadow-sm" data-i18n="dashboard.availableInvoices">
+                <div class="pro-nav-tabs ml-6">
+                    <button id="availableTab" onclick="switchBankView('available')" class="pro-nav-tab active" data-i18n="dashboard.availableInvoices">
                         Available Invoices
                     </button>
-                    <button id="purchasedTab" onclick="switchBankView('purchased')" class="px-5 py-2.5 rounded-lg font-semibold transition-all duration-200 bg-transparent text-gray-600 hover:bg-white/50" data-i18n="dashboard.myPortfolio">
+                    <button id="purchasedTab" onclick="switchBankView('purchased')" class="pro-nav-tab" data-i18n="dashboard.myPortfolio">
                         My Portfolio
                     </button>
                 </div>
@@ -42,11 +44,11 @@
 
             <div class="flex space-x-5 md:space-x-10 text-gray-500 items-center content-center text-base">
                 <!-- Language Switcher -->
-                <div class="flex items-center space-x-1 bg-white rounded-lg shadow-sm p-1">
-                    <button class="lang-btn px-3 py-1.5 text-sm font-medium rounded transition-all duration-200" data-lang="vi">
+                <div class="flex items-center space-x-1 pro-glass rounded-lg p-1">
+                    <button class="lang-btn px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 hover:bg-white/80" data-lang="vi">
                         🇻🇳 VI
                     </button>
-                    <button class="lang-btn px-3 py-1.5 text-sm font-medium rounded transition-all duration-200" data-lang="en">
+                    <button class="lang-btn px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 hover:bg-white/80" data-lang="en">
                         🇬🇧 EN
                     </button>
                 </div>
@@ -97,25 +99,26 @@
 
         <!-- Header Section -->
         <section>
-            <div class="bg-emerald-100/70 mt-12 rounded-xl px-5 sm:px-10 pt-8 pb-4 relative">
-                <div class="text-emerald-600 font-semibold text-lg" id="sectionTitle" data-i18n="dashboard.availableInvoices">Available Invoices</div>
-                <div class="mt-2 text-gray-600 text-sm" id="sectionDescription" data-i18n="dashboard.browseApprovedDescription">Browse approved invoices from verified SMEs</div>
+            <div class="pro-card-gradient mt-12 px-5 sm:px-10 pt-8 pb-6 relative overflow-hidden">
+                <div class="absolute inset-0 bg-gradient-to-r from-emerald-400/20 to-teal-400/20 opacity-50"></div>
+                <div class="relative z-10">
+                    <div class="text-emerald-700 font-bold text-2xl mb-2" id="sectionTitle" data-i18n="dashboard.availableInvoices">Available Invoices</div>
+                    <div class="text-gray-700 text-base" id="sectionDescription" data-i18n="dashboard.browseApprovedDescription">Browse approved invoices from verified SMEs</div>
+                </div>
             </div>
         </section>
 
         <!-- Available Invoices Table -->
         <section id="availableInvoicesSection" class="mt-8">
-            <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div class="pro-card-elevated overflow-hidden">
                 <div class="overflow-x-auto">
-                    <table class="w-full">
-                        <thead class="bg-gray-50 border-b border-gray-200">
+                    <table class="pro-table">
+                        <thead>
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-i18n="invoice.invoiceNumber">Invoice Number</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-i18n="dashboard.buyerName">Buyer Name</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-i18n="invoice.amount">Amount</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-i18n="dashboard.issueDate">Issue Date</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-i18n="dashboard.paymentTerm">Payment Term</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-i18n="dashboard.discountRate">Discount Rate</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-i18n="dashboard.createdDate">Created Date</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-i18n="invoice.status">Status</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-i18n="dashboard.actions">Actions</th>
                             </tr>
@@ -508,7 +511,7 @@
             tbody.innerHTML = '';
 
             if (invoices.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-8 text-center text-gray-500">No approved invoices available for purchase</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-gray-500">No approved invoices available for purchase</td></tr>';
                 return;
             }
 
@@ -517,11 +520,9 @@
                 row.className = 'hover:bg-gray-50';
                 row.innerHTML = `
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${invoice.invoice_number}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${invoice.buyer_name}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">${formatCurrency(invoice.amount)}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${formatDate(invoice.issue_date)}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${invoice.payment_term || 'N/A'} days</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${invoice.discount_rate || 0}%</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${invoice.buyer_name || 'N/A'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">${formatCurrency(invoice.amount)} ${invoice.currency || ''}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${formatDate(invoice.created_at)}</td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
                             ${invoice.status}
@@ -842,15 +843,17 @@
 
             // Purchase Information (if invoice is purchased) - Hidden for now as purchase feature is removed
             const purchaseSection = document.getElementById('purchaseInfoSection');
-            const respondButton = document.getElementById('detailsRespondButton');
+            const requestSection = document.getElementById('requestInfoSection');
+            const financingButton = document.getElementById('detailsFinancingButton');
+            const financedButton = document.getElementById('detailsFinancedButton');
             
             // Always hide purchase section since purchase feature is removed from Available Invoices
-            purchaseSection.classList.add('hidden');
+            if (purchaseSection) purchaseSection.classList.add('hidden');
             
-            // Hide request info and respond button for regular invoice details
-            const requestSection = document.getElementById('requestInfoSection');
-            requestSection.classList.add('hidden');
-            respondButton.classList.add('hidden');
+            // Hide request info and action buttons for regular invoice details
+            if (requestSection) requestSection.classList.add('hidden');
+            if (financingButton) financingButton.classList.add('hidden');
+            if (financedButton) financedButton.classList.add('hidden');
 
             // Show modal
             document.getElementById('invoiceDetailsModal').classList.remove('hidden');
@@ -1005,6 +1008,9 @@
             updateLastRefreshTime();
         });
     </script>
+    
+    <!-- Professional UI Enhancement Script -->
+    <script src="../js/professional-ui.js"></script>
 
 </body>
 </html>

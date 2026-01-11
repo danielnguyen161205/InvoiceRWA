@@ -326,50 +326,85 @@ async function handleXMLUpload(event) {
 }
 
 // ===== FORM SUBMISSION =====
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('createInvoiceForm');
-    if (form) {
-        form.addEventListener('submit', handleFormSubmit);
+// Register form submit handler immediately
+// Since script is loaded at end of body, DOM is ready
+(function() {
+    console.log('🔧 Registering form submit handler...');
+    
+    function registerFormHandler() {
+        const form = document.getElementById('createInvoiceForm');
+        if (form) {
+            console.log('✅ Form found, attaching submit handler');
+            form.addEventListener('submit', handleFormSubmit);
+        } else {
+            console.warn('⚠️ Form not found, retrying...');
+            setTimeout(registerFormHandler, 100);
+        }
     }
-});
+    
+    // Try to register immediately
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', registerFormHandler);
+    } else {
+        registerFormHandler();
+    }
+})();
 
 async function handleFormSubmit(event) {
     event.preventDefault();
+    event.stopPropagation();
     
-    // Validate form
+    console.log('🔄 Form submit triggered');
+    
+    const submitButton = event.target.querySelector('button[type="submit"]');
+    const buttonText = submitButton?.querySelector('span');
+    const originalButtonText = buttonText?.textContent || 'Tạo Hóa Đơn';
+    
+    // Validate form BEFORE disabling button
     if (!validateForm()) {
+        console.log('❌ Form validation failed');
+        alert('⚠️ Vui lòng điền đầy đủ thông tin bắt buộc!');
         return;
     }
     
-    // Gather all form data
-    const formData = {
-        invoice_number: document.getElementById('invoiceNo').value,
-        serial_no: document.getElementById('serialNo').value,
-        issue_date: document.getElementById('issueDate').value,
-        lookup_code: document.getElementById('lookupCode').value || null,
-        amount: parseFloat(document.getElementById('invoiceValue').value),
-        currency: document.getElementById('currency').value,
-        buyer_name: document.getElementById('buyerOrgId').selectedOptions[0]?.text || 'Unknown Buyer',
-        buyer_org_id: parseInt(document.getElementById('buyerOrgId').value) || null,
-        funding_category: document.getElementById('fundingCategory').value || null,
-        funding_purpose: document.getElementById('fundingPurpose').value || null,
-        recourse_type: parseInt(document.getElementById('recourseType').value),
-        payment_term: parseInt(document.getElementById('paymentTerm').value),
-        proposed_ltv: parseFloat(document.getElementById('proposedLtv').value),
-        discount_rate: parseFloat(document.getElementById('discountRate').value),
-        dispute_method: document.getElementById('disputeMethod').value
-    };
+    console.log('✅ Form validation passed');
     
-    // Submit to API
-    try {
-        const submitButton = event.target.querySelector('button[type="submit"]');
-        if (submitButton) {
-            submitButton.disabled = true;
-            const buttonText = submitButton.querySelector('span');
-            if (buttonText) {
-                buttonText.textContent = 'Đang tạo...';
-            }
+    // Disable button after validation passes
+    if (submitButton) {
+        submitButton.disabled = true;
+        if (buttonText) {
+            buttonText.textContent = 'Đang xử lý...';
         }
+    }
+    
+    try {
+        
+        // Gather all form data
+        const formData = {
+            invoice_number: document.getElementById('invoiceNo').value.trim(),
+            serial_no: document.getElementById('serialNo').value.trim(),
+            issue_date: document.getElementById('issueDate').value,
+            lookup_code: document.getElementById('lookupCode').value?.trim() || null,
+            amount: parseFloat(document.getElementById('invoiceValue').value),
+            currency: document.getElementById('currency').value,
+            buyer_name: document.getElementById('buyerOrgId').selectedOptions[0]?.text || 'Unknown Buyer',
+            buyer_org_id: parseInt(document.getElementById('buyerOrgId').value) || null,
+            funding_category: document.getElementById('fundingCategory').value || null,
+            funding_purpose: document.getElementById('fundingPurpose').value?.trim() || null,
+            recourse_type: parseInt(document.getElementById('recourseType').value),
+            payment_term: parseInt(document.getElementById('paymentTerm').value) || 30,
+            proposed_ltv: parseFloat(document.getElementById('proposedLtv').value) || 80,
+            discount_rate: parseFloat(document.getElementById('discountRate').value) || 12.5,
+            dispute_method: document.getElementById('disputeMethod').value || 'VIAC'
+        };
+        
+        console.log('📋 Form data:', formData);
+        console.log('🚀 Sending request to API...');
+        console.log('📍 API URL:', `${API_URL}/api/invoices/`);
+        
+        // Create abort controller for timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
         
         const response = await fetch(`${API_URL}/api/invoices/`, {
             method: 'POST',
@@ -377,17 +412,33 @@ async function handleFormSubmit(event) {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             },
-            body: JSON.stringify(formData)
+            body: JSON.stringify(formData),
+            signal: controller.signal
         });
         
+        clearTimeout(timeoutId);
+        
+        console.log('📥 Response status:', response.status);
+        
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.detail || 'Tạo hóa đơn thất bại');
+            const errorText = await response.text();
+            console.error('❌ API Error Response:', errorText);
+            
+            let errorMessage = 'Tạo hóa đơn thất bại';
+            try {
+                const error = JSON.parse(errorText);
+                errorMessage = error.detail || errorMessage;
+            } catch (e) {
+                errorMessage = errorText || errorMessage;
+            }
+            
+            throw new Error(errorMessage);
         }
         
         const result = await response.json();
+        console.log('✅ Invoice created successfully:', result);
         
-        alert('Tạo hóa đơn thành công!');
+        alert('✅ Tạo hóa đơn thành công!');
         closeCreateInvoiceModal();
         
         // Reload dashboard
@@ -398,15 +449,23 @@ async function handleFormSubmit(event) {
         }
         
     } catch (error) {
-        console.error('Error creating invoice:', error);
-        alert('Lỗi: ' + error.message);
+        console.error('❌ Error creating invoice:', error);
+        
+        let errorMessage = 'Lỗi không xác định';
+        if (error.name === 'AbortError') {
+            errorMessage = 'Request timeout - Server không phản hồi. Vui lòng kiểm tra server đang chạy.';
+        } else if (error.message) {
+            errorMessage = error.message;
+        }
+        
+        alert('❌ Lỗi: ' + errorMessage);
     } finally {
-        const submitButton = event.target.querySelector('button[type="submit"]');
+        // Always re-enable button
+        console.log('🔧 Re-enabling submit button...');
         if (submitButton) {
             submitButton.disabled = false;
-            const buttonText = submitButton.querySelector('span');
             if (buttonText) {
-                buttonText.textContent = 'Tạo Hóa Đơn';
+                buttonText.textContent = originalButtonText;
             }
         }
     }
@@ -417,26 +476,41 @@ function validateForm() {
     const requiredFields = [
         { id: 'buyerOrgId', name: 'Bên mua' },
         { id: 'invoiceNo', name: 'Số hóa đơn' },
+        { id: 'serialNo', name: 'Ký hiệu' },
+        { id: 'issueDate', name: 'Ngày lập' },
         { id: 'invoiceValue', name: 'Giá trị hóa đơn' }
     ];
     
     for (const field of requiredFields) {
-        const value = document.getElementById(field.id).value;
+        const element = document.getElementById(field.id);
+        if (!element) {
+            console.error(`Field ${field.id} not found`);
+            continue;
+        }
+        
+        const value = element.value;
         if (!value || value.trim() === '') {
             alert(`Vui lòng nhập ${field.name}`);
-            document.getElementById(field.id).focus();
+            element.focus();
+            // Switch to invoice tab if necessary
+            const invoiceTab = document.getElementById('content-invoice');
+            if (invoiceTab && invoiceTab.classList.contains('hidden')) {
+                switchTab('invoice');
+            }
             return false;
         }
     }
     
     // Check invoice value > 0
     const invoiceValue = parseFloat(document.getElementById('invoiceValue').value);
-    if (invoiceValue <= 0) {
+    if (isNaN(invoiceValue) || invoiceValue <= 0) {
         alert('Giá trị hóa đơn phải lớn hơn 0');
         document.getElementById('invoiceValue').focus();
+        switchTab('invoice');
         return false;
     }
     
+    console.log('✅ All validations passed');
     return true;
 }
 

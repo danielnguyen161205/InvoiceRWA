@@ -8,36 +8,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="../css/tailwind.generated.css" rel="stylesheet">
     <link href="../css/style.css" rel="stylesheet">
-    <link href="../css/modal-animation.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css">
+    <link href="../css/modal-animation.css" rel="stylesheet">    <link href="../css/professional-theme.css" rel="stylesheet">    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css">
     <script src="../js/i18n.js"></script>
     <title>Admin Dashboard - Invoice RWA</title>
 </head>
 
 <body class="font-montserrat">
 
-    <main class="bg-indigo-50/60 w-full py-10 px-3 sm:px-10">
+    <main class="bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 w-full py-10 px-3 sm:px-10 min-h-screen">
 
         <!-- Nav -->
-        <nav class="text-lg flex items-center justify-between content-center">
+        <nav class="pro-nav mb-8">
             <div class="font-semibold text-xl text-gray-800 flex space-x-4 items-center">
                 <span class="flex items-center">
                     <i class="ri-admin-line text-2xl mr-2 text-indigo-600"></i>
                     Admin Dashboard
                 </span>
-                <button onclick="checkDuplicateWallets()" class="px-4 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 transition-colors flex items-center" title="Check for duplicate wallet addresses">
-                    <i class="ri-wallet-3-line mr-2"></i>
+                <button onclick="checkDuplicateWallets()" class="pro-btn pro-btn-secondary pro-btn-sm" title="Check for duplicate wallet addresses">
+                    <i class="ri-wallet-3-line"></i>
                     Check Wallets
                 </button>
             </div>
 
             <div class="flex space-x-5 md:space-x-10 text-gray-500 items-center content-center text-base">
                 <!-- Language Switcher -->
-                <div class="flex items-center space-x-1 bg-white rounded-lg shadow-sm p-1">
-                    <button class="lang-btn px-3 py-1.5 text-sm font-medium rounded transition-all duration-200" data-lang="vi">
+                <div class="flex items-center space-x-1 pro-glass rounded-lg p-1">
+                    <button class="lang-btn px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 hover:bg-white/80" data-lang="vi">
                         🇻🇳 VI
                     </button>
-                    <button class="lang-btn px-3 py-1.5 text-sm font-medium rounded transition-all duration-200" data-lang="en">
+                    <button class="lang-btn px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 hover:bg-white/80" data-lang="en">
                         🇬🇧 EN
                     </button>
                 </div>

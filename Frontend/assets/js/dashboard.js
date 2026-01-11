@@ -193,6 +193,24 @@ function renderInvoiceTable(invoices, role) {
     if (role === "sme" && inv.bank_confirmed_financed && !inv.sme_confirmed_receipt) {
       action += ` | <a href="#" onclick="confirmReceipt(${inv.id}); return false;" class="text-blue-600 hover:underline cursor-pointer font-semibold">Received</a>`;
     }
+    
+    // Add "Close Invoice" button for SME if invoice is FINANCED and not yet closed
+    if (role === "sme" && inv.status === "FINANCED" && !inv.invoice_closed_by_sme) {
+      action += ` | <a href="#" onclick="closeInvoiceWithFee(${inv.id}); return false;" class="text-purple-600 hover:underline cursor-pointer font-semibold">Đóng hóa đơn</a>`;
+    }
+    
+    // Show closing fee status if invoice is closed
+    if (role === "sme" && inv.invoice_closed_by_sme) {
+      const feeStatus = inv.closing_fee_paid 
+        ? `<span class="text-green-600 text-xs">✓ Phí đã trả</span>`
+        : `<span class="text-orange-600 text-xs">⚠ Chưa trả phí</span>`;
+      action += ` | ${feeStatus}`;
+      
+      // Add "Pay Fee" button if fee not paid yet
+      if (!inv.closing_fee_paid) {
+        action += ` | <a href="#" onclick="payClosingFee(${inv.id}); return false;" class="text-orange-600 hover:underline cursor-pointer font-semibold text-xs">Trả phí</a>`;
+      }
+    }
 
     // NFT Status badge
     const nftStatus = inv.token_id 
@@ -307,6 +325,13 @@ async function showInvoiceDetail(invoiceId, role = 'sme') {
     document.getElementById('detailIssueDate').textContent = invoice.issue_date ? new Date(invoice.issue_date).toLocaleDateString('vi-VN') : '-';
     document.getElementById('detailLookupCode').textContent = invoice.lookup_code || '-';
     document.getElementById('detailCurrency').textContent = invoice.currency || 'VND';
+    
+    // Highlight changes if in EDITING status
+    if (invoice.status === 'EDITING' && invoice.original_data_snapshot) {
+      highlightChanges(invoice);
+    } else {
+      clearHighlights();
+    }
     
     // Show/hide rejection comment section
     const rejectionCommentSection = document.getElementById('rejectionCommentSection');
@@ -703,20 +728,190 @@ async function loadBuyerUserInfo(buyerId) {
         buyerEmail.textContent = userInfo.email || 'N/A';
         buyerUserSection.style.display = 'flex';
       }
-    } else {
-      console.warn('Unable to load buyer user info:', response.statusText);
-      // Hide user info section if API call fails
-      const buyerUserSection = document.getElementById('detailBuyerUser');
-      if (buyerUserSection) {
-        buyerUserSection.style.display = 'none';
-      }
     }
   } catch (error) {
     console.error('Error loading buyer user info:', error);
-    // Hide user info section on error
-    const buyerUserSection = document.getElementById('detailBuyerUser');
-    if (buyerUserSection) {
-      buyerUserSection.style.display = 'none';
-    }
   }
+}
+
+// Close invoice with 0.1% fee
+async function closeInvoiceWithFee(invoiceId) {
+  if (!confirm('Bạn có chắc chắn muốn đóng hóa đơn này?\n\nPhí đóng hóa đơn 0.1% sẽ được áp dụng.')) {
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/bank/invoices/${invoiceId}/close-invoice`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Failed to close invoice');
+    }
+
+    const result = await response.json();
+    
+    // Format closing fee in VND
+    const formattedFee = new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(result.closing_fee);
+    
+    alert(`✅ Hóa đơn đã được đóng thành công!\n\n` +
+          `Phí đóng hóa đơn (0.1%): ${formattedFee}\n\n` +
+          `${result.note}`);
+    
+    // Refresh dashboard to show updated status
+    if (typeof loadDashboard === 'function') {
+      loadDashboard();
+    }
+  } catch (error) {
+    console.error('Error closing invoice:', error);
+    alert('❌ Lỗi: ' + error.message);
+  }
+}
+
+// Pay closing fee
+async function payClosingFee(invoiceId) {
+  if (!confirm('Xác nhận thanh toán phí đóng hóa đơn?')) {
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/bank/invoices/${invoiceId}/pay-closing-fee`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Failed to pay closing fee');
+    }
+
+    const result = await response.json();
+    
+    // Format closing fee in VND
+    const formattedFee = new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(result.closing_fee);
+    
+    alert(`✅ Phí đóng hóa đơn đã được thanh toán!\n\nSố tiền: ${formattedFee}`);
+    
+    // Refresh dashboard
+    if (typeof loadDashboard === 'function') {
+      loadDashboard();
+    }
+  } catch (error) {
+    console.error('Error paying closing fee:', error);
+    alert('❌ Lỗi: ' + error.message);
+  }
+}
+
+// Highlight changes in EDITING invoices
+function highlightChanges(invoice) {
+  try {
+    const originalData = JSON.parse(invoice.original_data_snapshot);
+    
+    // Define field mappings
+    const fieldMappings = [
+      { id: 'detailSerialNo', current: invoice.serial_no, original: originalData.serial_no },
+      { id: 'detailIssueDate', current: invoice.issue_date, original: originalData.issue_date },
+      { id: 'detailLookupCode', current: invoice.lookup_code, original: originalData.lookup_code },
+      { id: 'detailAmount', current: invoice.amount, original: originalData.amount },
+      { id: 'detailCurrency', current: invoice.currency, original: originalData.currency },
+      { id: 'detailBuyer', current: invoice.buyer_name, original: originalData.buyer_name },
+      { id: 'detailRecourseType', current: invoice.recourse_type, original: originalData.recourse_type },
+      { id: 'detailPaymentTerm', current: invoice.payment_term, original: originalData.payment_term },
+      { id: 'detailLtv', current: invoice.proposed_ltv, original: originalData.proposed_ltv },
+      { id: 'detailDiscountRate', current: invoice.discount_rate, original: originalData.discount_rate },
+      { id: 'detailFundingCategory', current: invoice.funding_category, original: originalData.funding_category },
+      { id: 'detailFundingPurpose', current: invoice.funding_purpose, original: originalData.funding_purpose },
+      { id: 'detailDisputeMethod', current: invoice.dispute_method, original: originalData.dispute_method }
+    ];
+    
+    // Highlight changed fields
+    fieldMappings.forEach(field => {
+      const element = document.getElementById(field.id);
+      if (element) {
+        const parent = element.closest('.bg-white, .p-4, .rounded-lg');
+        
+        // Convert to comparable format
+        const currentValue = String(field.current || '');
+        const originalValue = String(field.original || '');
+        
+        if (currentValue !== originalValue) {
+          // Field has changed - add highlight
+          if (parent) {
+            parent.style.backgroundColor = '#fef3c7'; // yellow-100
+            parent.style.borderLeft = '4px solid #f59e0b'; // yellow-500
+            parent.style.transition = 'all 0.3s ease';
+            
+            // Add change indicator
+            if (!parent.querySelector('.change-indicator')) {
+              const indicator = document.createElement('div');
+              indicator.className = 'change-indicator text-xs text-yellow-700 font-semibold mt-1 flex items-center gap-1';
+              indicator.innerHTML = `
+                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd"/>
+                </svg>
+                <span>Đã thay đổi: ${originalValue || '(trống)'} → ${currentValue || '(trống)'}</span>
+              `;
+              parent.appendChild(indicator);
+            }
+          }
+        }
+      }
+    });
+    
+    // Add summary banner at the top
+    const modal = document.getElementById('invoiceDetailModal');
+    if (modal && !modal.querySelector('.changes-banner')) {
+      const banner = document.createElement('div');
+      banner.className = 'changes-banner bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4 rounded-r-lg';
+      banner.innerHTML = `
+        <div class="flex items-start">
+          <svg class="h-6 w-6 text-yellow-600 mt-0.5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+          <div class="flex-1">
+            <p class="text-sm font-semibold text-yellow-800">⚠️ Hóa đơn đang được chỉnh sửa</p>
+            <p class="text-xs text-yellow-700 mt-1">Các trường được tô màu vàng đã bị thay đổi so với bản gốc. Xem chi tiết bên dưới mỗi trường.</p>
+          </div>
+        </div>
+      `;
+      
+      const modalBody = modal.querySelector('.mt-6.space-y-6');
+      if (modalBody) {
+        modalBody.insertBefore(banner, modalBody.firstChild);
+      }
+    }
+  } catch (error) {
+    console.error('Error highlighting changes:', error);
+  }
+}
+
+// Clear all highlights
+function clearHighlights() {
+  // Remove all change indicators
+  document.querySelectorAll('.change-indicator').forEach(el => el.remove());
+  
+  // Remove changes banner
+  document.querySelectorAll('.changes-banner').forEach(el => el.remove());
+  
+  // Reset backgrounds
+  document.querySelectorAll('[style*="background-color: rgb(254, 243, 199)"]').forEach(el => {
+    el.style.backgroundColor = '';
+    el.style.borderLeft = '';
+  });
 }

@@ -1,0 +1,770 @@
+/* ================================================================
+   INVOICE RWA - PROFESSIONAL TRANSITIONS & EFFECTS
+   Hiệu ứng chuyên nghiệp cho mọi thành phần UI
+   ================================================================ */
+
+:root {
+  --transition-speed-fast: 150ms;
+  --transition-speed-normal: 300ms;
+  --transition-speed-slow: 500ms;
+  --transition-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --transition-smooth: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* ============================================================
+   BUTTON TRANSITIONS - All button states
+   ============================================================ */
+
+.btn-transition {
+  position: relative;
+  overflow: hidden;
+  transition: all var(--transition-speed-normal) var(--transition-ease);
+}
+
+.btn-transition:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+}
+
+.btn-transition:active {
+  transform: translateY(0);
+  box-shadow: 0 5px 15px -5px rgba(0, 0, 0, 0.2);
+}
+
+/* Button Ripple Effect */
+.btn-ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-ripple::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.btn-ripple:active::after {
+  width: 300px;
+  height: 300px;
+}
+
+/* Button Slide Effect */
+.btn-slide {
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.btn-slide::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transition: left 0.5s ease;
+  z-index: -1;
+}
+
+.btn-slide:hover::before {
+  left: 100%;
+}
+
+/* Button Glow on Hover */
+.btn-glow {
+  transition: all var(--transition-speed-normal) var(--transition-ease);
+}
+
+.btn-glow:hover {
+  box-shadow: 0 0 20px rgba(237, 67, 55, 0.6),
+              0 0 40px rgba(237, 67, 55, 0.4),
+              0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+/* Button Border Animation */
+.btn-border-animate {
+  position: relative;
+  border: 2px solid transparent;
+  background: linear-gradient(white, white) padding-box,
+              linear-gradient(45deg, #ed4337, #ff6b6b) border-box;
+  transition: all var(--transition-speed-normal) var(--transition-ease);
+}
+
+.btn-border-animate:hover {
+  background: linear-gradient(white, white) padding-box,
+              linear-gradient(225deg, #ed4337, #ff6b6b) border-box;
+}
+
+/* ============================================================
+   CARD TRANSITIONS - Interactive Cards
+   ============================================================ */
+
+.card-transition {
+  transition: all var(--transition-speed-normal) var(--transition-ease);
+  cursor: pointer;
+}
+
+.card-transition:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+/* Card Flip Effect */
+.card-flip {
+  perspective: 1000px;
+}
+
+.card-flip-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.8s;
+  transform-style: preserve-3d;
+}
+
+.card-flip:hover .card-flip-inner {
+  transform: rotateY(180deg);
+}
+
+.card-flip-front,
+.card-flip-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  border-radius: 12px;
+}
+
+.card-flip-back {
+  transform: rotateY(180deg);
+}
+
+/* Card Expand Effect */
+.card-expand {
+  transition: all 0.4s var(--transition-ease);
+  max-height: 200px;
+  overflow: hidden;
+}
+
+.card-expand:hover {
+  max-height: 500px;
+}
+
+/* Card Tilt Effect */
+.card-tilt {
+  transition: transform 0.3s ease-out;
+}
+
+.card-tilt:hover {
+  transform: perspective(1000px) rotateX(2deg) rotateY(2deg) scale(1.02);
+}
+
+/* Card Glow Border */
+.card-glow-border {
+  position: relative;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.card-glow-border::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, #ed4337, #ff6b6b, #ed4337);
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  z-index: -1;
+  background-size: 200% 200%;
+  animation: gradientShift 3s ease infinite;
+}
+
+.card-glow-border:hover::before {
+  opacity: 1;
+}
+
+/* ============================================================
+   MODAL TRANSITIONS
+   ============================================================ */
+
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  transition: opacity var(--transition-speed-normal) var(--transition-ease);
+  pointer-events: none;
+}
+
+.modal-backdrop.active {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.modal-content {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.9);
+  opacity: 0;
+  transition: all var(--transition-speed-normal) var(--transition-ease);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-content.active {
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
+}
+
+/* Modal Slide from Bottom */
+.modal-slide-up {
+  transform: translate(-50%, 100%);
+  opacity: 0;
+  transition: all 0.4s var(--transition-ease);
+}
+
+.modal-slide-up.active {
+  transform: translate(-50%, -50%);
+  opacity: 1;
+}
+
+/* Modal Bounce In */
+.modal-bounce {
+  transform: translate(-50%, -50%) scale(0.3);
+  opacity: 0;
+  transition: all 0.5s var(--transition-bounce);
+}
+
+.modal-bounce.active {
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
+}
+
+/* ============================================================
+   FORM INPUT TRANSITIONS
+   ============================================================ */
+
+.input-transition {
+  transition: all var(--transition-speed-normal) var(--transition-ease);
+  border: 2px solid #e0e0e0;
+}
+
+.input-transition:focus {
+  border-color: var(--first-color, #ed4337);
+  box-shadow: 0 0 0 3px rgba(237, 67, 55, 0.1);
+  transform: translateY(-2px);
+}
+
+.input-transition:hover:not(:focus) {
+  border-color: #c0c0c0;
+}
+
+/* Floating Label Effect */
+.input-floating-label {
+  position: relative;
+}
+
+.input-floating-label input,
+.input-floating-label textarea {
+  padding-top: 20px;
+  padding-bottom: 8px;
+}
+
+.input-floating-label label {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: all 0.3s var(--transition-ease);
+  pointer-events: none;
+  color: #999;
+  font-size: 16px;
+}
+
+.input-floating-label input:focus + label,
+.input-floating-label input:not(:placeholder-shown) + label,
+.input-floating-label textarea:focus + label,
+.input-floating-label textarea:not(:placeholder-shown) + label {
+  top: 8px;
+  transform: translateY(0);
+  font-size: 12px;
+  color: var(--first-color, #ed4337);
+}
+
+/* Input Success/Error States */
+.input-success {
+  border-color: #22c55e !important;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+}
+
+.input-error {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+/* ============================================================
+   DROPDOWN TRANSITIONS
+   ============================================================ */
+
+.dropdown-menu {
+  position: absolute;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all var(--transition-speed-normal) var(--transition-ease);
+  pointer-events: none;
+}
+
+.dropdown-menu.active,
+.dropdown:hover .dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  pointer-events: all;
+}
+
+/* Dropdown Slide & Fade */
+.dropdown-slide {
+  transform: translateY(-20px) scale(0.95);
+  opacity: 0;
+  transition: all 0.3s var(--transition-ease);
+}
+
+.dropdown-slide.active {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+
+/* ============================================================
+   TOOLTIP TRANSITIONS
+   ============================================================ */
+
+.tooltip {
+  position: relative;
+}
+
+.tooltip::before,
+.tooltip::after {
+  position: absolute;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s var(--transition-ease);
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.tooltip::before {
+  content: attr(data-tooltip);
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  white-space: nowrap;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%) translateY(-5px);
+}
+
+.tooltip::after {
+  content: '';
+  border: 6px solid transparent;
+  border-top-color: rgba(0, 0, 0, 0.9);
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.tooltip:hover::before,
+.tooltip:hover::after {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ============================================================
+   NAVIGATION TRANSITIONS
+   ============================================================ */
+
+.nav-link {
+  position: relative;
+  transition: color var(--transition-speed-normal) var(--transition-ease);
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--first-color, #ed4337);
+  transition: width 0.3s var(--transition-ease);
+}
+
+.nav-link:hover::after,
+.nav-link.active::after {
+  width: 100%;
+}
+
+/* Slide Underline Effect */
+.nav-underline {
+  position: relative;
+}
+
+.nav-underline::before {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: var(--first-color, #ed4337);
+  transition: all 0.3s var(--transition-ease);
+  transform: translateX(-50%);
+}
+
+.nav-underline:hover::before,
+.nav-underline.active::before {
+  width: 100%;
+}
+
+/* ============================================================
+   IMAGE TRANSITIONS
+   ============================================================ */
+
+.image-hover-zoom {
+  overflow: hidden;
+}
+
+.image-hover-zoom img {
+  transition: transform 0.5s var(--transition-ease);
+}
+
+.image-hover-zoom:hover img {
+  transform: scale(1.1);
+}
+
+/* Image Overlay */
+.image-overlay {
+  position: relative;
+  overflow: hidden;
+}
+
+.image-overlay::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    135deg,
+    rgba(237, 67, 55, 0.8),
+    rgba(255, 107, 107, 0.8)
+  );
+  opacity: 0;
+  transition: opacity 0.4s var(--transition-ease);
+}
+
+.image-overlay:hover::before {
+  opacity: 1;
+}
+
+/* Image Grayscale to Color */
+.image-grayscale {
+  transition: filter 0.4s var(--transition-ease);
+  filter: grayscale(100%);
+}
+
+.image-grayscale:hover {
+  filter: grayscale(0%);
+}
+
+/* ============================================================
+   TABLE ROW TRANSITIONS
+   ============================================================ */
+
+.table-row-hover {
+  transition: all var(--transition-speed-normal) var(--transition-ease);
+}
+
+.table-row-hover:hover {
+  background-color: rgba(237, 67, 55, 0.05);
+  transform: scale(1.01);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* ============================================================
+   ACCORDION TRANSITIONS
+   ============================================================ */
+
+.accordion-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s var(--transition-ease),
+              padding 0.4s var(--transition-ease);
+}
+
+.accordion-content.active {
+  max-height: 1000px;
+  padding: 20px;
+}
+
+.accordion-icon {
+  transition: transform 0.3s var(--transition-ease);
+}
+
+.accordion-item.active .accordion-icon {
+  transform: rotate(180deg);
+}
+
+/* ============================================================
+   TAB TRANSITIONS
+   ============================================================ */
+
+.tab-content {
+  opacity: 0;
+  display: none;
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+.tab-content.active {
+  display: block;
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+
+.tab-indicator {
+  position: absolute;
+  bottom: 0;
+  height: 3px;
+  background: var(--first-color, #ed4337);
+  transition: all 0.3s var(--transition-ease);
+}
+
+/* ============================================================
+   PROGRESS BAR TRANSITIONS
+   ============================================================ */
+
+.progress-bar {
+  position: relative;
+  height: 8px;
+  background: #e0e0e0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ed4337, #ff6b6b);
+  border-radius: 10px;
+  transition: width 0.6s var(--transition-ease);
+  position: relative;
+}
+
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  animation: shimmer 2s infinite;
+}
+
+/* ============================================================
+   BADGE TRANSITIONS
+   ============================================================ */
+
+.badge-pulse {
+  position: relative;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.badge-pulse::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: inherit;
+  transform: translate(-50%, -50%);
+  animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+  opacity: 0.75;
+}
+
+@keyframes ping {
+  75%, 100% {
+    transform: translate(-50%, -50%) scale(2);
+    opacity: 0;
+  }
+}
+
+/* ============================================================
+   NOTIFICATION TRANSITIONS
+   ============================================================ */
+
+.notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  transform: translateX(400px);
+  transition: transform 0.4s var(--transition-bounce);
+  z-index: 9999;
+}
+
+.notification.show {
+  transform: translateX(0);
+}
+
+.notification.hide {
+  transform: translateX(400px);
+}
+
+/* ============================================================
+   SIDEBAR TRANSITIONS
+   ============================================================ */
+
+.sidebar {
+  position: fixed;
+  left: -300px;
+  width: 300px;
+  height: 100vh;
+  transition: left 0.4s var(--transition-ease);
+  z-index: 1000;
+}
+
+.sidebar.active {
+  left: 0;
+}
+
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s var(--transition-ease);
+  z-index: 999;
+}
+
+.sidebar-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* ============================================================
+   SCROLL PROGRESS BAR
+   ============================================================ */
+
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 0%;
+  height: 4px;
+  background: linear-gradient(90deg, #ed4337, #ff6b6b);
+  transition: width 0.1s linear;
+  z-index: 9999;
+}
+
+/* ============================================================
+   LOADING SKELETON
+   ============================================================ */
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #f0f0f0 25%,
+    #e0e0e0 50%,
+    #f0f0f0 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+/* ============================================================
+   SMOOTH SCROLL BEHAVIOR
+   ============================================================ */
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #ed4337, #ff6b6b);
+  border-radius: 10px;
+  transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #d63a2e, #ff5555);
+}
+
+/* ============================================================
+   UTILITY TRANSITIONS
+   ============================================================ */
+
+.transition-all {
+  transition: all var(--transition-speed-normal) var(--transition-ease);
+}
+
+.transition-fast {
+  transition-duration: var(--transition-speed-fast);
+}
+
+.transition-slow {
+  transition-duration: var(--transition-speed-slow);
+}
+
+.transition-bounce {
+  transition-timing-function: var(--transition-bounce);
+}
+
+.transition-smooth {
+  transition-timing-function: var(--transition-smooth);
+}

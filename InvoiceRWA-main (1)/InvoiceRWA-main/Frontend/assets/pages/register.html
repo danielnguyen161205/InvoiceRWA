@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!--=============== REMIXICONS ===============-->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css">
+
+    <!--=============== SWIPER CSS ===============-->
+    <link rel="stylesheet" href="../css/swiper-bundel.min.css">
+
+    <!--=============== CSS ===============-->
+    <link rel="stylesheet" href="../css/tailwind.generated.css">
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/i18n.js"></script>
+
+    <title>Register - Invoice RWA</title>
+  </head>
+  <body>
+    <!-- Language Switcher (Top Right) -->
+    <div class="fixed top-4 right-4 z-50 flex items-center space-x-2 bg-white rounded-lg shadow-md p-1">
+      <button class="lang-btn px-3 py-1.5 text-sm font-medium rounded transition-all duration-200" data-lang="vi">
+         🇻🇳 VI
+      </button>
+      <button class="lang-btn px-3 py-1.5 text-sm font-medium rounded transition-all duration-200" data-lang="en">
+         🇬🇧 EN
+      </button>
+    </div>
+
+    <div class="login container grid">
+      <div class="login__container grid">
+        <div class="login__swiper swiper">
+          <div class="login__swiper-data">
+            <p class="login__swiper-subtitle">Welcome</p>
+            <h1 class="login__swiper-title">Create account<br>Join Invoice RWA</h1>
+          </div>
+
+          <div class="login__swiper-social">
+            <p class="login__swiper-subtitle">Our Social Media</p>
+
+            <div class="login__swiper-links">
+              <a href="https://www.facebook.com/thai.nguyen161205" target="_blank" class="login__swiper-link">
+                <i class="ri-facebook-circle-line"></i>
+              </a>
+                     
+              <a href="https://www.instagram.com/nguyenthai1612/" target="_blank" class="login__swiper-link">
+                <i class="ri-instagram-line"></i>
+              </a>
+
+              <a href="https://github.com/danielnguyen161205" target="_blank" class="login__swiper-link">
+                <i class="ri-github-line"></i>
+              </a>
+            </div>
+          </div>
+
+          <div class="swiper-wrapper">
+            <img src="../images/img-1.png" alt="image" class="login__swiper-img swiper-slide">
+
+            <img src="../images/img-2.png" alt="image" class="login__swiper-img swiper-slide">
+                  
+            <img src="../images/img-3.png" alt="image" class="login__swiper-img swiper-slide">
+          </div>
+
+          <div class="swiper-pagination"></div>
+        </div>
+   
+        <div class="login__area grid">
+          <div class="login__data">
+              <a href="./login.html" class="login__back"><i class="ri-arrow-left-line"></i> <span data-i18n="common.back">Back to login</span></a>
+              <h1 class="login__title" data-i18n="auth.createAccount">Create account 👋</h1>
+
+              <p class="login__description" data-i18n="auth.pleaseEnterDetails">Please enter your details.</p>
+            </div>
+   
+   
+          <form id="registerForm" class="login__form">
+            <div class="login__content grid">
+              <div class="login__box">
+                <input id="name" type="text" name="name" data-i18n-attr="placeholder:auth.fullName" placeholder="Full name" class="login__input">
+                <i class="ri-user-line"></i>
+              </div>
+
+              <div class="login__box">
+                <input id="email" type="email" name="email" data-i18n-attr="placeholder:auth.email" placeholder="Email" class="login__input">
+                <i class="ri-mail-line"></i>
+              </div>
+     
+              <div class="login__box">
+                <input id="loginPass" type="password" name="password" data-i18n-attr="placeholder:auth.password" placeholder="Password" class="login__input">
+                <i class="ri-eye-line login__eye" id="loginEye"></i>
+              </div>
+
+              <div class="login__box">
+                <input id="confirmPass" type="password" name="confirm_password" data-i18n-attr="placeholder:auth.confirmPassword" placeholder="Confirm password" class="login__input">
+                <i class="ri-lock-2-line"></i>
+              </div>
+
+              <div class="login__box">
+                <select id="userRole" name="role" class="login__input" style="padding-right: 2.5rem;">
+                  <option value="" data-i18n="auth.selectRole">Select your role</option>
+                  <option value="SME" data-i18n="auth.smeOrBuyer">SME or Buyer (Business User)</option>
+                  <option value="BANK" data-i18n="auth.bank">Bank (Financial Institution)</option>
+                </select>
+                <i class="ri-shield-user-line"></i>
+              </div>
+            </div>
+
+            <button id="registerBtn" type="submit" class="login__button" data-i18n="auth.register">Register</button>
+          </form>
+               
+        </div>
+      </div>
+    </div>
+      
+    <!--=============== SWIPER JS ===============-->
+    <script src="../js/swiper-bundel.min.js"></script>
+
+    <!--=============== AUTH JS ===============-->
+    <script src="../js/register.js"></script>
+
+    <!--=============== MAIN JS ===============-->
+    <script src="../js/login.js"></script>
+  </body>
+  </html>

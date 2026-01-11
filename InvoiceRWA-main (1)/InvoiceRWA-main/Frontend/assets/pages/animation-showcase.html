@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice RWA - Animation Showcase</title>
+    
+    <!-- CSS Files -->
+    <link rel="stylesheet" href="../css/animations.css">
+    <link rel="stylesheet" href="../css/transitions.css">
+    <link rel="stylesheet" href="../css/effects.css">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .section {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .section-title {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 30px;
+            color: #333;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .demo-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+        }
+        
+        .demo-card h3 {
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: #ed4337;
+        }
+        
+        .demo-card p {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .demo-button {
+            background: #ed4337;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 30px;
+            background: linear-gradient(135deg, #ed4337, #ff6b6b);
+            border-radius: 16px;
+            color: white;
+        }
+        
+        .stat-number {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .stat-label {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+        
+        .hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            padding: 100px 20px;
+            margin-bottom: 30px;
+            border-radius: 16px;
+        }
+        
+        .hero h1 {
+            font-size: 64px;
+            font-weight: 900;
+            margin-bottom: 20px;
+        }
+        
+        .hero p {
+            font-size: 24px;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <!-- Scroll Progress Bar -->
+    <div class="scroll-progress" data-scroll-progress></div>
+    
+    <!-- Hero Section -->
+    <div class="hero animate-fade-in-up">
+        <h1 class="gradient-text-animated" style="-webkit-text-fill-color: white;">Invoice RWA</h1>
+        <p>Professional Animations Showcase</p>
+    </div>
+    
+    <div class="container">
+        
+        <!-- Fade Animations -->
+        <section class="section scroll-reveal-up">
+            <h2 class="section-title">🎭 Fade Animations</h2>
+            <div class="grid">
+                <div class="demo-card animate-fade-in delay-100">
+                    <h3>Fade In</h3>
+                    <p>Simple fade in effect</p>
+                </div>
+                <div class="demo-card animate-fade-in-up delay-200">
+                    <h3>Fade In Up</h3>
+                    <p>Fade with upward motion</p>
+                </div>
+                <div class="demo-card animate-fade-in-down delay-300">
+                    <h3>Fade In Down</h3>
+                    <p>Fade with downward motion</p>
+                </div>
+                <div class="demo-card animate-fade-in-left delay-400">
+                    <h3>Fade In Left</h3>
+                    <p>Fade from left side</p>
+                </div>
+                <div class="demo-card animate-fade-in-right delay-500">
+                    <h3>Fade In Right</h3>
+                    <p>Fade from right side</p>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Scale Animations -->
+        <section class="section scroll-reveal-up">
+            <h2 class="section-title">📏 Scale Animations</h2>
+            <div class="grid">
+                <div class="demo-card animate-scale-in delay-100">
+                    <h3>Scale In</h3>
+                    <p>Smooth scale up</p>
+                </div>
+                <div class="demo-card animate-zoom-in delay-200">
+                    <h3>Zoom In</h3>
+                    <p>Dramatic zoom effect</p>
+                </div>
+                <div class="demo-card animate-pulse delay-300">
+                    <h3>Pulse</h3>
+                    <p>Continuous pulse</p>
+                </div>
+                <div class="demo-card animate-elastic-bounce delay-400">
+                    <h3>Elastic Bounce</h3>
+                    <p>Bouncy entrance</p>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Glassmorphism Effects -->
+        <section class="section scroll-reveal-up" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 60px 40px;">
+            <h2 class="section-title" style="color: white;">🔮 Glassmorphism Cards</h2>
+            <div class="grid">
+                <div class="glass-card card-transition" style="padding: 30px; border-radius: 16px;">
+                    <h3 style="color: white; margin-bottom: 10px;">Glass Card</h3>
+                    <p style="color: rgba(255,255,255,0.9);">Modern blur effect with transparency</p>
+                </div>
+                <div class="glass-card-strong card-transition" style="padding: 30px; border-radius: 16px;">
+                    <h3 style="color: white; margin-bottom: 10px;">Strong Glass</h3>
+                    <p style="color: rgba(255,255,255,0.9);">More blur and opacity</p>
+                </div>
+                <div class="glass-card card-transition hover-lift" style="padding: 30px; border-radius: 16px;">
+                    <h3 style="color: white; margin-bottom: 10px;">Hover Effect</h3>
+                    <p style="color: rgba(255,255,255,0.9);">Lifts up on hover</p>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Button Effects -->
+        <section class="section scroll-reveal-up">
+            <h2 class="section-title">🔘 Button Effects</h2>
+            <div style="text-align: center;">
+                <button class="demo-button btn-ripple">Ripple Effect</button>
+                <button class="demo-button btn-glow">Glow Effect</button>
+                <button class="demo-button btn-transition">Hover Transition</button>
+                <button class="demo-button btn-3d">3D Button</button>
+                <button class="demo-button btn-gradient-animated">Gradient Animated</button>
+            </div>
+        </section>
+        
+        <!-- Card Interactions -->
+        <section class="section scroll-reveal-up">
+            <h2 class="section-title">🎴 Card Interactions</h2>
+            <div class="grid">
+                <div class="demo-card card-transition hover-lift shadow-soft-lg">
+                    <h3>Lift on Hover</h3>
+                    <p>Elevates smoothly</p>
+                </div>
+                <div class="demo-card card-glow-border shadow-primary">
+                    <h3>Glow Border</h3>
+                    <p>Animated border glow</p>
+                </div>
+                <div class="demo-card card-premium shadow-soft-xl">
+                    <h3>Premium Card</h3>
+                    <p>High-end design</p>
+                </div>
+                <div class="demo-card card-holographic">
+                    <h3>Holographic</h3>
+                    <p>Shine effect</p>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Gradient Backgrounds -->
+        <section class="section scroll-reveal-up">
+            <h2 class="section-title">🌈 Gradient Backgrounds</h2>
+            <div class="grid">
+                <div class="gradient-primary" style="padding: 40px; border-radius: 12px; text-align: center; color: white;">
+                    <h3>Primary Gradient</h3>
+                </div>
+                <div class="gradient-sunset" style="padding: 40px; border-radius: 12px; text-align: center; color: white;">
+                    <h3>Sunset Gradient</h3>
+                </div>
+                <div class="gradient-ocean" style="padding: 40px; border-radius: 12px; text-align: center; color: white;">
+                    <h3>Ocean Gradient</h3>
+                </div>
+                <div class="gradient-purple" style="padding: 40px; border-radius: 12px; text-align: center; color: white;">
+                    <h3>Purple Gradient</h3>
+                </div>
+                <div class="gradient-fire" style="padding: 40px; border-radius: 12px; text-align: center; color: white;">
+                    <h3>Fire Gradient</h3>
+                </div>
+                <div class="gradient-animated" style="padding: 40px; border-radius: 12px; text-align: center; color: white;">
+                    <h3>Animated Gradient</h3>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Counter Animations -->
+        <section class="section scroll-reveal-up">
+            <h2 class="section-title">📊 Animated Counters</h2>
+            <div class="stats-grid">
+                <div class="stat-card animate-scale-in delay-100">
+                    <div class="stat-number" data-count="12500">0</div>
+                    <div class="stat-label">Happy Customers</div>
+                </div>
+                <div class="stat-card animate-scale-in delay-200" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                    <div class="stat-number" data-count="98.5" data-decimals="1">0</div>
+                    <div class="stat-label">Success Rate %</div>
+                </div>
+                <div class="stat-card animate-scale-in delay-300" style="background: linear-gradient(135deg, #4facfe, #00f2fe);">
+                    <div class="stat-number" data-count="1500">0</div>
+                    <div class="stat-label">Projects Completed</div>
+                </div>
+                <div class="stat-card animate-scale-in delay-400" style="background: linear-gradient(135deg, #0ba360, #3cba92);">
+                    <div class="stat-number" data-count="24">0</div>
+                    <div class="stat-label">Hours Support</div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Text Effects -->
+        <section class="section scroll-reveal-up">
+            <h2 class="section-title">✍️ Text Effects</h2>
+            <div style="text-align: center; padding: 40px;">
+                <h1 class="gradient-text" style="font-size: 64px; margin-bottom: 20px;">Gradient Text</h1>
+                <h1 class="gradient-text-animated" style="font-size: 48px; margin-bottom: 20px;">Animated Gradient</h1>
+                <h1 class="glow-neon-red" style="font-size: 48px; background: #000; padding: 20px; border-radius: 12px;">Neon Glow</h1>
+            </div>
+        </section>
+        
+        <!-- Special Animations -->
+        <section class="section scroll-reveal-up">
+            <h2 class="section-title">⚡ Special Animations</h2>
+            <div class="grid">
+                <div class="demo-card animate-bounce">
+                    <h3>Bounce</h3>
+                    <p>Continuous bounce</p>
+                </div>
+                <div class="demo-card animate-shake">
+                    <h3>Shake</h3>
+                    <p>Attention grabber</p>
+                </div>
+                <div class="demo-card animate-wobble">
+                    <h3>Wobble</h3>
+                    <p>Wobble effect</p>
+                </div>
+                <div class="demo-card animate-swing">
+                    <h3>Swing</h3>
+                    <p>Swing motion</p>
+                </div>
+                <div class="demo-card animate-float">
+                    <h3>Float</h3>
+                    <p>Floating effect</p>
+                </div>
+                <div class="demo-card animate-heartbeat">
+                    <h3>Heartbeat</h3>
+                    <p>Pulse like heartbeat</p>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Loading States -->
+        <section class="section scroll-reveal-up">
+            <h2 class="section-title">⏱️ Loading States</h2>
+            <div style="text-align: center; padding: 40px;">
+                <div class="spinner" style="margin: 0 auto 40px;"></div>
+                <div class="dots-loading" style="display: inline-flex; gap: 10px; margin-bottom: 40px;">
+                    <span></span><span></span><span></span>
+                </div>
+                <div style="max-width: 400px; margin: 0 auto;">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 75%;"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Stagger Children Example -->
+        <section class="section scroll-reveal-up">
+            <h2 class="section-title">📊 Stagger Animation</h2>
+            <div class="stagger-children grid">
+                <div class="demo-card shadow-soft">
+                    <h3>Item 1</h3>
+                    <p>Animates first</p>
+                </div>
+                <div class="demo-card shadow-soft">
+                    <h3>Item 2</h3>
+                    <p>Animates second</p>
+                </div>
+                <div class="demo-card shadow-soft">
+                    <h3>Item 3</h3>
+                    <p>Animates third</p>
+                </div>
+                <div class="demo-card shadow-soft">
+                    <h3>Item 4</h3>
+                    <p>Animates fourth</p>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Footer -->
+        <section class="section scroll-reveal-up" style="text-align: center; background: linear-gradient(135deg, #ed4337, #ff6b6b); color: white;">
+            <h2 style="font-size: 36px; margin-bottom: 20px;">🎨 Animation System Complete!</h2>
+            <p style="font-size: 18px; opacity: 0.9; margin-bottom: 30px;">Tất cả hiệu ứng đã sẵn sàng để sử dụng trong project</p>
+            <button class="demo-button btn-ripple" style="background: white; color: #ed4337; font-weight: 600;">
+                Get Started
+            </button>
+        </section>
+        
+    </div>
+    
+    <!-- JavaScript Files -->
+    <script src="../js/scroll-animations.js"></script>
+    <script src="../js/page-transitions.js"></script>
+    
+    <script>
+        // Additional demo scripts
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🎨 Animation Showcase Loaded!');
+            
+            // Log when scroll reveals happen
+            document.addEventListener('scrollReveal', (e) => {
+                console.log('Element revealed:', e.detail.element);
+            });
+        });
+    </script>
+</body>
+</html>

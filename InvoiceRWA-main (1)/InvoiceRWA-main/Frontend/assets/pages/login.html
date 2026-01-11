@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+   <html lang="en">
+   <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+      <!--=============== REMIXICONS ===============-->
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css">
+
+      <!--=============== SWIPER CSS ===============-->
+      <link rel="stylesheet" href="../css/swiper-bundel.min.css">
+
+      <!--=============== CSS ===============-->
+      <link rel="stylesheet" href="../css/tailwind.generated.css">
+      <link rel="stylesheet" href="../css/style.css">
+      <script src="../js/i18n.js"></script>
+
+      <title>Login - Invoice RWA</title>
+   </head>
+   <body>
+      <!-- Language Switcher (Top Right) -->
+      <div class="fixed top-4 right-4 z-50 flex items-center space-x-2 bg-white rounded-lg shadow-md p-1">
+         <button class="lang-btn px-3 py-1.5 text-sm font-medium rounded transition-all duration-200" data-lang="vi">
+            🇻🇳 VI
+         </button>
+         <button class="lang-btn px-3 py-1.5 text-sm font-medium rounded transition-all duration-200" data-lang="en">
+            🇬🇧 EN
+         </button>
+      </div>
+
+      <div class="login container grid">
+         <div class="login__container grid">
+            <div class="login__swiper swiper">
+               <div class="login__swiper-data">
+                  <p class="login__swiper-subtitle">Welcome Back</p>
+                  <h1 class="login__swiper-title">Hello Developer, <br> Sign In To Get Started</h1>
+               </div>
+
+               <div class="login__swiper-social">
+                  <p class="login__swiper-subtitle">Our Social Media</p>
+
+                  <div class="login__swiper-links">
+                     <a href="https://www.facebook.com/thai.nguyen161205" target="_blank" class="login__swiper-link">
+                        <i class="ri-facebook-circle-line"></i>
+                     </a>
+                     
+                     <a href="https://www.instagram.com/nguyenthai1612/" target="_blank" class="login__swiper-link">
+                        <i class="ri-instagram-line"></i>
+                     </a>
+
+                     <a href="https://github.com/danielnguyen161205" target="_blank" class="login__swiper-link">
+                        <i class="ri-github-line"></i>
+                     </a>
+                  </div>
+               </div>
+
+               <div class="swiper-wrapper">
+                  <img src="../images/img-1.png" alt="image" class="login__swiper-img swiper-slide">
+
+                  <img src="../images/img-2.png" alt="image" class="login__swiper-img swiper-slide">
+                  
+                  <img src="../images/img-3.png" alt="image" class="login__swiper-img swiper-slide">
+               </div>
+
+               <div class="swiper-pagination"></div>
+            </div>
+   
+            <div class="login__area grid">
+               <div class="login__data">
+                  <h1 class="login__title" data-i18n="auth.welcomeBack">Welcome Back 👋</h1>
+      
+                  <p class="login__description" data-i18n="auth.pleaseEnterDetails">Please enter your details.</p>
+      
+                  <button class="login__button-border">
+                     <i class="ri-google-fill"></i> <span data-i18n="auth.signInWithGoogle">Sign in with Google</span>
+                  </button>
+               </div>
+   
+               <span class="login__line">or</span>
+   
+               <form action="" class="login__form">
+                  <div class="login__content grid">
+                        <div class="login__box">
+                           <input id="email" type="email" name="email" data-i18n-attr="placeholder:auth.email" placeholder="Email" class="login__input">
+                           <i class="ri-mail-line"></i>
+                        </div>
+      
+                        <div class="login__box">
+                           <input id="password" type="password" name="password" data-i18n-attr="placeholder:auth.password" placeholder="Password" class="login__input">
+                           <i class="ri-eye-line login__eye" id="loginEye"></i>
+                        </div>
+                     </div>
+   
+                  <a href="#" class="login__forgot" data-i18n="auth.forgotPassword">Forgot Password?</a>
+   
+                    <button id="loginBtn" type="submit" class="login__button" data-i18n="auth.login">Log In</button>
+                           <p id="error" class="text-red-500 mt-2"></p>
+               </form>
+               
+               <p class="login__switch">
+                  <span data-i18n="auth.noAccount">Don't have an account?</span>
+                    <a href="../pages/register.html" class="login__sign" data-i18n="auth.signUp">Sign Up</a>
+               </p>
+            </div>
+         </div>
+      </div>
+      
+      <!-- KYC Modal -->
+      <div id="kycModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+         <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+               <div class="flex justify-between items-center mb-4">
+                  <h2 class="text-2xl font-bold text-gray-800">Complete KYC Verification</h2>
+                  <button id="closeKycModal" class="text-gray-500 hover:text-gray-700">
+                     <i class="ri-close-line text-2xl"></i>
+                  </button>
+               </div>
+               
+               <div id="kycStatusMessage" class="mb-4 p-4 rounded-lg"></div>
+               
+               <div id="kycFormContainer">
+                  <p class="text-gray-600 mb-6">Please provide your organization details to complete the verification process.</p>
+                  
+                  <form id="kycOrgForm" class="space-y-4">
+                     <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Legal Name *</label>
+                        <input id="kyc_legal_name" type="text" required 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                     </div>
+                     
+                     <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Trade Name</label>
+                        <input id="kyc_trade_name" type="text" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                     </div>
+                     
+                     <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Tax ID</label>
+                        <input id="kyc_tax_id" type="text" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                     </div>
+                     
+                     <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                        <textarea id="kyc_address" rows="3" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                     </div>
+                     
+                     <div id="uploadSection" style="display:none;">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Upload Documents</label>
+                        <input type="file" id="kyc_file_input" class="w-full px-3 py-2 border border-gray-300 rounded-md" />
+                        <button type="button" id="kyc_upload_btn" class="mt-2 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
+                           Upload Document
+                        </button>
+                        <div id="kyc_upload_result" class="mt-2 text-sm"></div>
+                     </div>
+                     
+                     <div class="flex gap-3 mt-6">
+                        <button type="submit" id="kycSubmitBtn" 
+                           class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                           Create Organization
+                        </button>
+                        <button type="button" id="kycSubmitReviewBtn" style="display:none;"
+                           class="flex-1 bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
+                           Submit for Review
+                        </button>
+                     </div>
+                  </form>
+               </div>
+            </div>
+         </div>
+      </div>
+      
+      <!--=============== SWIPER JS ===============-->
+      <script src="../js/swiper-bundel.min.js"></script>
+
+      <!--=============== AUTH JS ===============-->
+      <script src="../js/auth.js"></script>
+
+      <!--=============== MAIN JS ===============-->
+      <script src="../js/login.js"></script>
+   </body>
+</html>

@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="author" content="Mazyar">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="../css/tailwind.generated.css" rel="stylesheet">
+    <link href="../css/style.css" rel="stylesheet">
+    <link href="../css/modal-animation.css" rel="stylesheet">
+    <script src="../js/i18n.js"></script>
+    <title>Bank Dashboard - Invoice Marketplace</title>
+</head>
+
+<body class="font-montserrat">
+
+    <main class="bg-indigo-50/60 w-full py-10 px-3 sm:px-10">
+
+        <!-- Nav -->
+        <nav class="text-lg flex items-center justify-between content-center">
+            <div class="font-semibold text-xl text-gray-800 flex space-x-4 items-center">
+                <a href="#">
+                    <span class="md:hidden">
+                        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path>
+                        </svg>
+                    </span>
+                </a>
+                <span data-i18n="dashboard.invoiceMarketplace">Invoice Marketplace</span>
+                
+                <!-- Tab Buttons -->
+                <div class="flex space-x-1 ml-6 text-sm bg-gradient-to-r from-gray-200 to-gray-300 p-1 rounded-xl shadow-inner">
+                    <button id="availableTab" onclick="switchBankView('available')" class="px-5 py-2.5 rounded-lg font-semibold transition-all duration-200 bg-white text-indigo-600 shadow-sm" data-i18n="dashboard.availableInvoices">
+                        Available Invoices
+                    </button>
+                    <button id="purchasedTab" onclick="switchBankView('purchased')" class="px-5 py-2.5 rounded-lg font-semibold transition-all duration-200 bg-transparent text-gray-600 hover:bg-white/50" data-i18n="dashboard.myPortfolio">
+                        My Portfolio
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex space-x-5 md:space-x-10 text-gray-500 items-center content-center text-base">
+                <!-- Language Switcher -->
+                <div class="flex items-center space-x-1 bg-white rounded-lg shadow-sm p-1">
+                    <button class="lang-btn px-3 py-1.5 text-sm font-medium rounded transition-all duration-200" data-lang="vi">
+                        🇻🇳 VI
+                    </button>
+                    <button class="lang-btn px-3 py-1.5 text-sm font-medium rounded transition-all duration-200" data-lang="en">
+                        🇬🇧 EN
+                    </button>
+                </div>
+                
+                <!-- Manual Refresh Button -->
+                <button onclick="manualRefresh()" id="manualRefreshBtn" title="Refresh invoices" class="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                </button>
+                
+                <!-- Last Updated Indicator -->
+                <div id="lastUpdated" class="hidden md:flex items-center text-xs text-gray-400">
+                    <svg class="h-3 w-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10" stroke-width="2"></circle>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6l4 2"></path>
+                    </svg>
+                    <span id="lastUpdatedTime" data-i18n="dashboard.justNow">Just now</span>
+                </div>
+                
+                <!-- User Profile Dropdown -->
+                <div class="relative">
+                    <button id="userMenuButton" onclick="toggleUserMenu()" class="flex items-center space-x-2 focus:outline-none">
+                        <img class="rounded-full w-10 h-10 border-2 border-indigo-200 hover:border-indigo-300 cursor-pointer" src="../images/avatar.png" alt="User Avatar">
+                        <svg class="h-4 w-4 text-gray-600 transition-transform duration-200" id="userMenuArrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </button>
+                    
+                    <!-- Dropdown Menu -->
+                    <div id="userDropdownMenu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-50 border border-gray-200">
+                        <a href="/pages/profile.html" class="flex items-center px-4 py-2 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
+                            <svg class="h-5 w-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                            </svg>
+                            <span data-i18n="common.profile">Profile</span>
+                        </a>
+                        <button onclick="logout()" class="w-full flex items-center px-4 py-2 text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors">
+                            <svg class="h-5 w-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                            </svg>
+                            <span data-i18n="common.logout">Logout</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav> <!-- /Nav -->
+
+        <!-- Header Section -->
+        <section>
+            <div class="bg-emerald-100/70 mt-12 rounded-xl px-5 sm:px-10 pt-8 pb-4 relative">
+                <div class="text-emerald-600 font-semibold text-lg" id="sectionTitle" data-i18n="dashboard.availableInvoices">Available Invoices</div>
+                <div class="mt-2 text-gray-600 text-sm" id="sectionDescription" data-i18n="dashboard.browseApprovedDescription">Browse approved invoices from verified SMEs</div>
+            </div>
+        </section>
+
+        <!-- Available Invoices Table -->
+        <section id="availableInvoicesSection" class="mt-8">
+            <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-i18n="invoice.invoiceNumber">Invoice Number</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-i18n="dashboard.buyerName">Buyer Name</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-i18n="invoice.amount">Amount</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-i18n="dashboard.issueDate">Issue Date</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-i18n="dashboard.paymentTerm">Payment Term</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-i18n="dashboard.discountRate">Discount Rate</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-i18n="invoice.status">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-i18n="dashboard.actions">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="availableInvoicesTableBody" class="bg-white divide-y divide-gray-200">
+                            <!-- Invoices will be loaded here dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Purchased Invoices Table -->
+        <section id="purchasedInvoicesSection" class="mt-8 hidden">
+            <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-i18n="invoice.invoiceNumber">Invoice Number</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-i18n="dashboard.buyerName">Buyer Name</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-i18n="invoice.amount">Amount</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-i18n="dashboard.issueDate">Issue Date</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-i18n="dashboard.paymentTerm">Payment Term</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-i18n="invoice.status">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Request Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-i18n="dashboard.actions">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="purchasedInvoicesTableBody" class="bg-white divide-y divide-gray-200">
+                            <!-- Purchased invoices will be loaded here dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Purchase Invoice Modal -->
+    <div id="purchaseInvoiceModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-800" data-i18n="dashboard.purchaseInvoice">Purchase Invoice</h3>
+            </div>
+            <div class="px-6 py-4">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2" data-i18n="invoice.invoiceNumber">Invoice Number</label>
+                    <input type="text" id="purchaseInvoiceNumber" readonly class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2" data-i18n="dashboard.originalAmount">Original Amount</label>
+                    <input type="text" id="purchaseOriginalAmount" readonly class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2" data-i18n="dashboard.discountRate">Discount Rate (%)</label>
+                    <input type="text" id="purchaseDiscountRate" readonly class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2"><span data-i18n="dashboard.purchasePrice">Purchase Price</span> (VND) *</label>
+                    <input type="number" id="purchasePriceInput" data-i18n-attr="placeholder:dashboard.enterPurchasePrice" placeholder="Enter purchase price" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                    <p class="text-xs text-gray-500 mt-1" data-i18n="dashboard.amountToPay">Enter the amount you will pay for this invoice</p>
+                </div>
+            </div>
+            <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end space-x-3">
+                <button onclick="closePurchaseModal()" class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50" data-i18n="common.cancel">
+                    Cancel
+                </button>
+                <button onclick="confirmPurchase()" class="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700" data-i18n="dashboard.confirmPurchase">
+                    Confirm Purchase
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invoice Details Modal -->
+    <div id="invoiceDetailsModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="px-6 py-4 border-b border-gray-200 sticky top-0 bg-white">
+                <h3 class="text-lg font-semibold text-gray-800" data-i18n="dashboard.invoiceDetails">Invoice Details</h3>
+            </div>
+            <div class="px-6 py-4">
+                <div class="grid grid-cols-2 gap-6">
+                    <!-- Basic Information -->
+                    <div class="col-span-2">
+                        <h4 class="text-md font-semibold text-gray-700 mb-3 border-b pb-2">Basic Information</h4>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Invoice Number</label>
+                        <p id="detailInvoiceNumber" class="text-sm text-gray-900 font-semibold">-</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Status</label>
+                        <p id="detailStatus" class="text-sm">-</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Serial Number</label>
+                        <p id="detailSerialNo" class="text-sm text-gray-900">-</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Issue Date</label>
+                        <p id="detailIssueDate" class="text-sm text-gray-900">-</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Lookup Code</label>
+                        <p id="detailLookupCode" class="text-sm text-gray-900">-</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Created At</label>
+                        <p id="detailCreatedAt" class="text-sm text-gray-900">-</p>
+                    </div>
+                    
+                    <!-- Financial Information -->
+                    <div class="col-span-2 mt-4">
+                        <h4 class="text-md font-semibold text-gray-700 mb-3 border-b pb-2">Financial Information</h4>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Amount</label>
+                        <p id="detailAmount" class="text-lg text-emerald-600 font-bold">-</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Currency</label>
+                        <p id="detailCurrency" class="text-sm text-gray-900">-</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Discount Rate</label>
+                        <p id="detailDiscountRate" class="text-sm text-gray-900">-</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Proposed LTV</label>
+                        <p id="detailProposedLtv" class="text-sm text-gray-900">-</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Payment Term</label>
+                        <p id="detailPaymentTerm" class="text-sm text-gray-900">-</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Recourse Type</label>
+                        <p id="detailRecourseType" class="text-sm text-gray-900">-</p>
+                    </div>
+                    
+                    <!-- Purchase Information (if purchased) -->
+                    <div id="purchaseInfoSection" class="col-span-2 mt-4 hidden">
+                        <h4 class="text-md font-semibold text-gray-700 mb-3 border-b pb-2">Purchase Information</h4>
+                        <div class="grid grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-1">Purchase Price</label>
+                                <p id="detailPurchasePrice" class="text-lg text-indigo-600 font-bold">-</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-1">Purchased At</label>
+                                <p id="detailPurchasedAt" class="text-sm text-gray-900">-</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-1">Profit Margin</label>
+                                <p id="detailProfitMargin" class="text-sm text-gray-900">-</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Party Information -->
+                    <div class="col-span-2 mt-4">
+                        <h4 class="text-md font-semibold text-gray-700 mb-3 border-b pb-2">Party Information</h4>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Buyer Name</label>
+                        <p id="detailBuyerName" class="text-sm text-gray-900">-</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Buyer Organization ID</label>
+                        <p id="detailBuyerOrgId" class="text-sm text-gray-900">-</p>
+                    </div>
+                    
+                    <!-- Additional Information -->
+                    <div class="col-span-2 mt-4">
+                        <h4 class="text-md font-semibold text-gray-700 mb-3 border-b pb-2">Additional Information</h4>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Funding Category</label>
+                        <p id="detailFundingCategory" class="text-sm text-gray-900">-</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Dispute Method</label>
+                        <p id="detailDisputeMethod" class="text-sm text-gray-900">-</p>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Funding Purpose</label>
+                        <p id="detailFundingPurpose" class="text-sm text-gray-900">-</p>
+                    </div>
+                    
+                    <!-- Bank Request Information (for My Portfolio) -->
+                    <div id="requestInfoSection" class="col-span-2 mt-4 hidden">
+                        <h4 class="text-md font-semibold text-gray-700 mb-3 border-b pb-2">Request Information</h4>
+                        <div class="grid grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-1">Request Status</label>
+                                <p id="detailRequestStatus" class="text-sm">-</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-1">Requested Finance Amount</label>
+                                <p id="detailFinanceAmount" class="text-sm text-gray-900">-</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-1">Interest Rate</label>
+                                <p id="detailInterestRate" class="text-sm text-gray-900">-</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end space-x-3">
+                <button onclick="closeDetailsModal()" class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                    Close
+                </button>
+                <button id="detailsFinancingButton" onclick="financingFromDetails()" class="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 hidden">
+                    Financing
+                </button>
+                <button id="detailsFinancedButton" onclick="financedFromDetails()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 hidden">
+                    Financed
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8000/api';
+        let selectedInvoiceId = null;
+        let selectedRequestId = null;
+        let currentInvoiceData = null; // Store current invoice with request info
+        let currentView = 'available'; // Track current view
+        let autoRefreshInterval = null;
+
+        // Check authentication
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = '/pages/login.html';
+        }
+
+        // Update last refresh time indicator
+        function updateLastRefreshTime() {
+            const lastUpdatedEl = document.getElementById('lastUpdatedTime');
+            if (lastUpdatedEl) {
+                const now = new Date();
+                const timeString = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+                lastUpdatedEl.textContent = timeString;
+                
+                // Show the indicator
+                const lastUpdatedContainer = document.getElementById('lastUpdated');
+                if (lastUpdatedContainer) {
+                    lastUpdatedContainer.classList.remove('hidden');
+                    lastUpdatedContainer.classList.add('flex');
+                }
+            }
+        }
+
+        // Manual refresh function
+        async function manualRefresh() {
+            const btn = document.getElementById('manualRefreshBtn');
+            if (btn) {
+                btn.classList.add('animate-spin');
+                btn.disabled = true;
+            }
+            
+            console.log('🔄 Manual refresh triggered');
+            await refreshDashboard();
+            
+            if (btn) {
+                setTimeout(() => {
+                    btn.classList.remove('animate-spin');
+                    btn.disabled = false;
+                }, 500);
+            }
+        }
+
+        // Start auto-refresh
+        function startAutoRefresh() {
+            // Clear existing interval
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+            }
+            
+            // Auto-refresh every 30 seconds
+            autoRefreshInterval = setInterval(() => {
+                if (currentView === 'available') {
+                    loadAvailableInvoices();
+                } else {
+                    loadPurchasedInvoices();
+                }
+            }, 30000);
+            
+            console.log('📊 Bank Dashboard: Auto-refresh started (every 30s)');
+        }
+
+        // Pause auto-refresh when page is hidden
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                if (autoRefreshInterval) {
+                    clearInterval(autoRefreshInterval);
+                    console.log('📊 Bank Dashboard: Auto-refresh paused');
+                }
+            } else {
+                startAutoRefresh();
+                console.log('📊 Bank Dashboard: Auto-refresh resumed');
+            }
+        });
+
+        // Toggle user menu
+        function toggleUserMenu() {
+            const menu = document.getElementById('userDropdownMenu');
+            const arrow = document.getElementById('userMenuArrow');
+            menu.classList.toggle('hidden');
+            arrow.style.transform = menu.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+        }
+
+        // Close dropdown when clicking outside
+        window.addEventListener('click', function(event) {
+            if (!event.target.closest('#userMenuButton')) {
+                const menu = document.getElementById('userDropdownMenu');
+                const arrow = document.getElementById('userMenuArrow');
+                if (!menu.classList.contains('hidden')) {
+                    menu.classList.add('hidden');
+                    arrow.style.transform = 'rotate(0deg)';
+                }
+            }
+        });
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = '/pages/login.html';
+        }
+
+        // Switch between available and purchased invoices
+        function switchBankView(view) {
+            currentView = view; // Track current view for auto-refresh
+            
+            const availableTab = document.getElementById('availableTab');
+            const purchasedTab = document.getElementById('purchasedTab');
+            const availableSection = document.getElementById('availableInvoicesSection');
+            const purchasedSection = document.getElementById('purchasedInvoicesSection');
+            const sectionTitle = document.getElementById('sectionTitle');
+            const sectionDescription = document.getElementById('sectionDescription');
+
+            if (view === 'available') {
+                availableTab.className = 'px-5 py-2.5 rounded-lg font-semibold transition-all duration-200 bg-white text-indigo-600 shadow-sm';
+                purchasedTab.className = 'px-5 py-2.5 rounded-lg font-semibold transition-all duration-200 bg-transparent text-gray-600 hover:bg-white/50';
+                availableSection.classList.remove('hidden');
+                purchasedSection.classList.add('hidden');
+                sectionTitle.textContent = 'Available Invoices';
+                sectionDescription.textContent = 'Browse approved invoices from verified SMEs';
+                loadAvailableInvoices();
+            } else {
+                availableTab.className = 'px-5 py-2.5 rounded-lg font-semibold transition-all duration-200 bg-transparent text-gray-600 hover:bg-white/50';
+                purchasedTab.className = 'px-5 py-2.5 rounded-lg font-semibold transition-all duration-200 bg-white text-indigo-600 shadow-sm';
+                availableSection.classList.add('hidden');
+                purchasedSection.classList.remove('hidden');
+                sectionTitle.textContent = 'My Portfolio';
+                sectionDescription.textContent = 'Invoices with financing requests from SMEs';
+                loadPurchasedInvoices();
+            }
+        }
+
+        // Load available invoices
+        async function loadAvailableInvoices() {
+            try {
+                console.log('🔄 Loading available invoices...');
+                const response = await fetch(`${API_BASE_URL}/invoices/bank/approved`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load available invoices');
+                }
+
+                const invoices = await response.json();
+                console.log(`✅ Loaded ${invoices.length} available invoices`);
+                displayAvailableInvoices(invoices);
+                updateLastRefreshTime();
+            } catch (error) {
+                console.error('Error loading available invoices:', error);
+                alert('Failed to load available invoices');
+            }
+        }
+
+        // Display available invoices
+        function displayAvailableInvoices(invoices) {
+            const tbody = document.getElementById('availableInvoicesTableBody');
+            tbody.innerHTML = '';
+
+            if (invoices.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-8 text-center text-gray-500">No approved invoices available for purchase</td></tr>';
+                return;
+            }
+
+            invoices.forEach(invoice => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50';
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${invoice.invoice_number}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${invoice.buyer_name}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">${formatCurrency(invoice.amount)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${formatDate(invoice.issue_date)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${invoice.payment_term || 'N/A'} days</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${invoice.discount_rate || 0}%</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                            ${invoice.status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm space-x-2">
+                        <button onclick="viewInvoiceDetails(${invoice.id})" 
+                                class="px-3 py-1 bg-indigo-100 text-indigo-600 rounded-md hover:bg-indigo-200 transition-colors">
+                            View Details
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Load purchased invoices
+        async function loadPurchasedInvoices() {
+            try {
+                console.log('🔄 Loading portfolio invoices...');
+                const response = await fetch(`${API_BASE_URL}/bank/invoices/portfolio`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load portfolio invoices');
+                }
+
+                const invoices = await response.json();
+                console.log(`✅ Loaded ${invoices.length} portfolio invoices`);
+                displayPurchasedInvoices(invoices);
+                updateLastRefreshTime();
+            } catch (error) {
+                console.error('Error loading portfolio invoices:', error);
+                alert('Failed to load portfolio invoices');
+            }
+        }
+
+        // Display purchased invoices
+        function displayPurchasedInvoices(invoices) {
+            const tbody = document.getElementById('purchasedInvoicesTableBody');
+            tbody.innerHTML = '';
+
+            if (invoices.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-8 text-center text-gray-500">No invoices have been requested from you yet</td></tr>';
+                return;
+            }
+
+            invoices.forEach(invoice => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50';
+                
+                // Determine request status badge
+                let requestStatusBadge = 'N/A';
+                if (invoice.has_request) {
+                    const requestStatus = invoice.request_status;
+                    const badgeColors = {
+                        'PENDING': 'bg-yellow-100 text-yellow-800',
+                        'REJECTED': 'bg-red-100 text-red-800',
+                        'FINANCING': 'bg-blue-100 text-blue-800',
+                        'FINANCED': 'bg-green-100 text-green-800',
+                        'CANCELLED': 'bg-gray-100 text-gray-800'
+                    };
+                    const badgeClass = badgeColors[requestStatus] || 'bg-gray-100 text-gray-800';
+                    requestStatusBadge = `<span class="px-2 py-1 text-xs font-semibold rounded-full ${badgeClass}">${requestStatus}</span>`;
+                }
+                
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${invoice.invoice_number}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${invoice.buyer_name || 'N/A'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">${formatCurrency(invoice.amount)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${formatDate(invoice.issue_date)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${invoice.payment_term || 'N/A'} days</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeClass(invoice.status)}">
+                            ${invoice.status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                        ${requestStatusBadge}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm space-x-2">
+                        <button onclick='viewPortfolioInvoiceDetails(${JSON.stringify(invoice).replace(/'/g, "&apos;")})' 
+                                class="px-3 py-1 bg-indigo-100 text-indigo-600 rounded-md hover:bg-indigo-200 transition-colors">
+                            View Details
+                        </button>
+                        ${invoice.has_request && invoice.request_status === 'PENDING' ? 
+                            `<button onclick="startFinancing(${invoice.request_id})" 
+                                    class="px-3 py-1 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition-colors">
+                                Financing
+                            </button>` : 
+                            invoice.has_request && invoice.request_status === 'FINANCING' ?
+                            `<button onclick="markAsFinanced(${invoice.request_id})" 
+                                    class="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                                Financed
+                            </button>` :
+                            ''
+                        }
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Open purchase modal
+        function openPurchaseModal(invoiceId, invoiceNumber, amount, discountRate) {
+            selectedInvoiceId = invoiceId;
+            document.getElementById('purchaseInvoiceNumber').value = invoiceNumber;
+            document.getElementById('purchaseOriginalAmount').value = formatCurrency(amount);
+            document.getElementById('purchaseDiscountRate').value = discountRate + '%';
+            
+            // Calculate suggested purchase price based on discount rate
+            const suggestedPrice = amount * (1 - discountRate / 100);
+            document.getElementById('purchasePriceInput').value = Math.round(suggestedPrice);
+            
+            document.getElementById('purchaseInvoiceModal').classList.remove('hidden');
+            document.getElementById('purchaseInvoiceModal').classList.add('flex');
+        }
+
+        // Close purchase modal
+        function closePurchaseModal() {
+            document.getElementById('purchaseInvoiceModal').classList.add('hidden');
+            document.getElementById('purchaseInvoiceModal').classList.remove('flex');
+            selectedInvoiceId = null;
+            document.getElementById('purchasePriceInput').value = '';
+        }
+
+        // Confirm purchase
+        async function confirmPurchase() {
+            const purchasePrice = parseFloat(document.getElementById('purchasePriceInput').value);
+            
+            if (!purchasePrice || purchasePrice <= 0) {
+                alert('Please enter a valid purchase price');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/invoices/${selectedInvoiceId}/purchase`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        purchase_price: purchasePrice
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Failed to purchase invoice');
+                }
+
+                const result = await response.json();
+                alert('Invoice purchased successfully!');
+                closePurchaseModal();
+                loadAvailableInvoices(); // Refresh the list
+            } catch (error) {
+                console.error('Error purchasing invoice:', error);
+                alert('Failed to purchase invoice: ' + error.message);
+            }
+        }
+
+        // Start financing (bank accepts request)
+        async function startFinancing(requestId) {
+            if (!confirm('Start financing for this invoice?\n\nThis will change the status to FINANCING.')) {
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_BASE_URL}/bank/requests/${requestId}/accept`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Failed to start financing');
+                }
+
+                const result = await response.json();
+                alert('✅ Financing started successfully!');
+                loadPurchasedInvoices(); // Refresh the list
+            } catch (error) {
+                console.error('Error starting financing:', error);
+                alert('❌ Error: ' + error.message);
+            }
+        }
+
+        // Mark as financed (bank transferred money)
+        async function markAsFinanced(requestId) {
+            if (!confirm('Confirm that you have transferred the financing amount?\n\nWaiting for SME to confirm receipt.')) {
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_BASE_URL}/bank/requests/${requestId}/financed`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Failed to mark as financed');
+                }
+
+                const result = await response.json();
+                if (result.status === 'FINANCED') {
+                    alert('✅ Both parties confirmed! Invoice status changed to FINANCED.');
+                } else {
+                    alert('✅ Bank confirmed financing. Waiting for SME to confirm receipt.');
+                }
+                loadPurchasedInvoices(); // Refresh the list
+            } catch (error) {
+                console.error('Error marking as financed:', error);
+                alert('❌ Error: ' + error.message);
+            }
+        }
+
+        // Confirm payment received (SETTLED -> CLOSED)
+        async function confirmPayment(invoiceId) {
+            if (!confirm('Confirm that you have received payment from the buyer?\\n\\nThis will close the invoice.')) {
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_BASE_URL}/invoices/${invoiceId}/confirm-payment`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Failed to confirm payment');
+                }
+
+                const result = await response.json();
+                alert('✅ Payment confirmed successfully!\\n\\nInvoice status changed to CLOSED.');
+                loadPurchasedInvoices(); // Refresh the list
+            } catch (error) {
+                console.error('Error confirming payment:', error);
+                alert('❌ Error: ' + error.message);
+            }
+        }
+
+        // Get status badge class
+        function getStatusBadgeClass(status) {
+            const statusClasses = {
+                'FINANCED': 'bg-blue-100 text-blue-700',
+                'SETTLED': 'bg-yellow-100 text-yellow-700',
+                'CLOSED': 'bg-green-100 text-green-700',
+                'APPROVED': 'bg-purple-100 text-purple-700'
+            };
+            return statusClasses[status] || 'bg-gray-100 text-gray-700';
+        }
+
+        // View invoice details
+        async function viewInvoiceDetails(invoiceId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/invoices/${invoiceId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load invoice details');
+                }
+
+                const invoice = await response.json();
+                displayInvoiceDetails(invoice);
+            } catch (error) {
+                console.error('Error loading invoice details:', error);
+                alert('Failed to load invoice details: ' + error.message);
+            }
+        }
+
+        // Display invoice details in modal
+        function displayInvoiceDetails(invoice) {
+            // Basic Information
+            document.getElementById('detailInvoiceNumber').textContent = invoice.invoice_number || '-';
+            document.getElementById('detailStatus').innerHTML = `<span class="px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeClass(invoice.status)}">${invoice.status}</span>`;
+            document.getElementById('detailSerialNo').textContent = invoice.serial_no || '-';
+            document.getElementById('detailIssueDate').textContent = formatDate(invoice.issue_date);
+            document.getElementById('detailLookupCode').textContent = invoice.lookup_code || '-';
+            document.getElementById('detailCreatedAt').textContent = formatDate(invoice.created_at);
+
+            // Financial Information
+            document.getElementById('detailAmount').textContent = formatCurrency(invoice.amount);
+            document.getElementById('detailCurrency').textContent = invoice.currency || 'VND';
+            document.getElementById('detailDiscountRate').textContent = (invoice.discount_rate || 0) + '%';
+            document.getElementById('detailProposedLtv').textContent = (invoice.proposed_ltv || 0) + '%';
+            document.getElementById('detailPaymentTerm').textContent = (invoice.payment_term || 'N/A') + ' days';
+            document.getElementById('detailRecourseType').textContent = invoice.recourse_type === 1 ? 'With Recourse' : 'Without Recourse';
+
+            // Party Information
+            document.getElementById('detailBuyerName').textContent = invoice.buyer_name || '-';
+            document.getElementById('detailBuyerOrgId').textContent = invoice.buyer_org_id || '-';
+
+            // Additional Information
+            document.getElementById('detailFundingCategory').textContent = invoice.funding_category || '-';
+            document.getElementById('detailDisputeMethod').textContent = invoice.dispute_method || '-';
+            document.getElementById('detailFundingPurpose').textContent = invoice.funding_purpose || '-';
+
+            // Purchase Information (if invoice is purchased) - Hidden for now as purchase feature is removed
+            const purchaseSection = document.getElementById('purchaseInfoSection');
+            const respondButton = document.getElementById('detailsRespondButton');
+            
+            // Always hide purchase section since purchase feature is removed from Available Invoices
+            purchaseSection.classList.add('hidden');
+            
+            // Hide request info and respond button for regular invoice details
+            const requestSection = document.getElementById('requestInfoSection');
+            requestSection.classList.add('hidden');
+            respondButton.classList.add('hidden');
+
+            // Show modal
+            document.getElementById('invoiceDetailsModal').classList.remove('hidden');
+            document.getElementById('invoiceDetailsModal').classList.add('flex');
+        }
+        
+        // View portfolio invoice details (with request info)
+        function viewPortfolioInvoiceDetails(invoiceData) {
+            currentInvoiceData = invoiceData;
+            
+            // Basic Information
+            document.getElementById('detailInvoiceNumber').textContent = invoiceData.invoice_number || '-';
+            document.getElementById('detailStatus').innerHTML = `<span class="px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeClass(invoiceData.status)}">${invoiceData.status}</span>`;
+            document.getElementById('detailSerialNo').textContent = invoiceData.serial_no || '-';
+            document.getElementById('detailIssueDate').textContent = formatDate(invoiceData.issue_date);
+            document.getElementById('detailLookupCode').textContent = invoiceData.lookup_code || '-';
+            document.getElementById('detailCreatedAt').textContent = formatDate(invoiceData.created_at);
+
+            // Financial Information
+            document.getElementById('detailAmount').textContent = formatCurrency(invoiceData.amount);
+            document.getElementById('detailCurrency').textContent = invoiceData.currency || 'VND';
+            document.getElementById('detailDiscountRate').textContent = (invoiceData.discount_rate || 0) + '%';
+            document.getElementById('detailProposedLtv').textContent = (invoiceData.proposed_ltv || 0) + '%';
+            document.getElementById('detailPaymentTerm').textContent = (invoiceData.payment_term || 'N/A') + ' days';
+            document.getElementById('detailRecourseType').textContent = invoiceData.recourse_type === 1 ? 'With Recourse' : 'Without Recourse';
+
+            // Party Information
+            document.getElementById('detailBuyerName').textContent = invoiceData.buyer_name || '-';
+            document.getElementById('detailBuyerOrgId').textContent = invoiceData.buyer_org_id || '-';
+
+            // Additional Information
+            document.getElementById('detailFundingCategory').textContent = invoiceData.funding_category || '-';
+            document.getElementById('detailDisputeMethod').textContent = invoiceData.dispute_method || '-';
+            document.getElementById('detailFundingPurpose').textContent = invoiceData.funding_purpose || '-';
+
+            // Hide purchase section
+            const purchaseSection = document.getElementById('purchaseInfoSection');
+            purchaseSection.classList.add('hidden');
+            
+            // Show request info if available
+            const requestSection = document.getElementById('requestInfoSection');
+            const financingButton = document.getElementById('detailsFinancingButton');
+            const financedButton = document.getElementById('detailsFinancedButton');
+            
+            if (invoiceData.has_request) {
+                requestSection.classList.remove('hidden');
+                
+                const requestStatus = invoiceData.request_status;
+                const badgeColors = {
+                    'PENDING': 'bg-yellow-100 text-yellow-800',
+                    'REJECTED': 'bg-red-100 text-red-800',
+                    'FINANCING': 'bg-blue-100 text-blue-800',
+                    'FINANCED': 'bg-green-100 text-green-800',
+                    'CANCELLED': 'bg-gray-100 text-gray-800'
+                };
+                const badgeClass = badgeColors[requestStatus] || 'bg-gray-100 text-gray-800';
+                document.getElementById('detailRequestStatus').innerHTML = `<span class="px-2 py-1 text-xs font-semibold rounded-full ${badgeClass}">${requestStatus}</span>`;
+                document.getElementById('detailFinanceAmount').textContent = invoiceData.finance_amount ? formatCurrency(invoiceData.finance_amount) : 'Not specified';
+                document.getElementById('detailInterestRate').textContent = invoiceData.interest_rate ? invoiceData.interest_rate + '%' : 'Not specified';
+                
+                // Show appropriate button based on request status
+                if (requestStatus === 'PENDING') {
+                    financingButton.classList.remove('hidden');
+                    financedButton.classList.add('hidden');
+                    selectedRequestId = invoiceData.request_id;
+                } else if (requestStatus === 'FINANCING') {
+                    financingButton.classList.add('hidden');
+                    financedButton.classList.remove('hidden');
+                    selectedRequestId = invoiceData.request_id;
+                } else {
+                    financingButton.classList.add('hidden');
+                    financedButton.classList.add('hidden');
+                }
+            } else {
+                requestSection.classList.add('hidden');
+                financingButton.classList.add('hidden');
+                financedButton.classList.add('hidden');
+            }
+
+            // Show modal
+            document.getElementById('invoiceDetailsModal').classList.remove('hidden');
+            document.getElementById('invoiceDetailsModal').classList.add('flex');
+        }
+        
+        // Start financing from details modal
+        function financingFromDetails() {
+            if (selectedRequestId) {
+                closeDetailsModal();
+                startFinancing(selectedRequestId);
+            }
+        }
+
+        // Mark as financed from details modal
+        function financedFromDetails() {
+            if (selectedRequestId) {
+                closeDetailsModal();
+                markAsFinanced(selectedRequestId);
+            }
+        }
+
+        // Close details modal
+        function closeDetailsModal() {
+            document.getElementById('invoiceDetailsModal').classList.add('hidden');
+            document.getElementById('invoiceDetailsModal').classList.remove('flex');
+        }
+
+        // Manual refresh function for bank dashboard
+        function refreshBankDashboard() {
+            console.log('🔄 Manual refresh triggered for bank dashboard');
+            refreshDashboard();
+        }
+        
+        // Main refresh function that respects current view
+        function refreshDashboard() {
+            console.log(`🔄 Refreshing bank dashboard - current view: ${currentView}`);
+            if (currentView === 'available') {
+                loadAvailableInvoices();
+            } else {
+                loadPurchasedInvoices();
+            }
+        }
+
+        // Purchase from details modal
+        function purchaseFromDetails() {
+            closeDetailsModal();
+            // Purchase button in modal already has onclick handler set in displayInvoiceDetails
+        }
+
+        // Format currency
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('vi-VN', {
+                style: 'currency',
+                currency: 'VND'
+            }).format(amount);
+        }
+
+        // Format date
+        function formatDate(dateString) {
+            if (!dateString) return 'N/A';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('vi-VN');
+        }
+
+        // Initialize bank dashboard with auto-refresh
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🏦 Bank dashboard loaded - initializing auto-refresh');
+            currentView = 'available'; // Set default view
+            loadAvailableInvoices(); // Initial load
+            startAutoRefresh(); // Start auto-refresh
+            
+            // Update last refresh time initially
+            updateLastRefreshTime();
+        });
+    </script>
+
+</body>
+</html>

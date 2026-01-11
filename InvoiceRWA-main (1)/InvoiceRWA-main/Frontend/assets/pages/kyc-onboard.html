@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>KYC Onboarding</title>
+  <link rel="stylesheet" href="../css/tailwind.generated.css">
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="../js/i18n.js"></script>
+</head>
+<body>
+  <!-- Language Switcher (Top Right) -->
+  <div class="fixed top-4 right-4 z-50 flex items-center space-x-2 bg-white rounded-lg shadow-md p-1">
+    <button class="lang-btn px-3 py-1.5 text-sm font-medium rounded transition-all duration-200" data-lang="vi">
+      🇻🇳 VI
+    </button>
+    <button class="lang-btn px-3 py-1.5 text-sm font-medium rounded transition-all duration-200" data-lang="en">
+      🇬🇧 EN
+    </button>
+  </div>
+
+  <div class="container">
+    <h1>KYC Onboarding</h1>
+
+    <form id="orgForm">
+      <label>Legal name</label>
+      <input id="legal_name" required />
+      <label>Trade name</label>
+      <input id="trade_name" />
+      <label>Tax ID</label>
+      <input id="tax_id" />
+      <label>Address</label>
+      <input id="address" />
+      <button type="submit">Create Organization</button>
+    </form>
+
+    <div id="orgArea" style="display:none; margin-top:20px;">
+      <h2>Organization <span id="orgId"></span></h2>
+
+      <h3>Upload document</h3>
+      <input type="file" id="fileInput" />
+      <button id="uploadBtn">Upload</button>
+      <div id="uploadResult"></div>
+
+      <h3>Actions</h3>
+      <button id="submitReview">Submit for review</button>
+    </div>
+  </div>
+
+  <script src="../js/kyc.js"></script>
+</body>
+</html>

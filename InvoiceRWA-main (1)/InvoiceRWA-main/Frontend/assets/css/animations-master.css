@@ -1,0 +1,224 @@
+/* ================================================================
+   INVOICE RWA - MASTER ANIMATIONS IMPORT
+   Import tất cả animation files vào một file duy nhất
+   ================================================================ */
+
+/* Core Animation Libraries */
+@import 'animations.css';
+@import 'transitions.css';
+@import 'effects.css';
+
+/* ================================================================
+   ADDITIONAL UTILITIES - Responsive Animations
+   ================================================================ */
+
+/* Disable animations on mobile for better performance */
+@media (max-width: 768px) {
+  .no-mobile-animation {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ================================================================
+   PERFORMANCE OPTIMIZATIONS
+   ================================================================ */
+
+/* Enable GPU acceleration for animations */
+.gpu-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Will-change for better performance */
+.will-animate {
+  will-change: transform, opacity;
+}
+
+/* Remove will-change after animation */
+.animated {
+  will-change: auto;
+}
+
+/* ================================================================
+   QUICK UTILITY CLASSES
+   ================================================================ */
+
+/* Hide element initially for scroll reveal */
+.hidden-initially {
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* Show element */
+.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Prevent layout shift during animation */
+.prevent-shift {
+  min-height: 1px;
+}
+
+/* Smooth color transitions */
+.smooth-colors {
+  transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Smooth transform transitions */
+.smooth-transform {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Combined smooth transitions */
+.smooth-all {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ================================================================
+   ANIMATION TRIGGERS - JavaScript hooks
+   ================================================================ */
+
+/* Element with data attribute for animation */
+[data-animate] {
+  opacity: 0;
+}
+
+[data-animate].animated {
+  opacity: 1;
+}
+
+/* Loading state */
+.is-loading {
+  pointer-events: none;
+  opacity: 0.6;
+  cursor: wait;
+}
+
+/* Disabled state */
+.is-disabled {
+  pointer-events: none;
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ================================================================
+   PRINT STYLES - Disable animations for print
+   ================================================================ */
+
+@media print {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+}
+
+/* ================================================================
+   DEBUG MODE - Show animation boundaries
+   ================================================================ */
+
+.debug-animations * {
+  outline: 1px solid rgba(255, 0, 0, 0.2);
+}
+
+.debug-animations [class*="animate-"] {
+  outline: 2px solid rgba(0, 255, 0, 0.5);
+}
+
+/* ================================================================
+   THEME VARIATIONS
+   ================================================================ */
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .glass-card {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .shadow-soft {
+    box-shadow: 0 2px 8px rgba(255, 255, 255, 0.05);
+  }
+}
+
+/* ================================================================
+   BROWSER-SPECIFIC FIXES
+   ================================================================ */
+
+/* Safari specific fixes */
+@supports (-webkit-backdrop-filter: none) or (backdrop-filter: none) {
+  .glass-card {
+    -webkit-backdrop-filter: blur(10px);
+  }
+}
+
+/* Firefox specific fixes */
+@-moz-document url-prefix() {
+  .glass-card {
+    background: rgba(255, 255, 255, 0.15);
+  }
+}
+
+/* ================================================================
+   ACCESSIBILITY ENHANCEMENTS
+   ================================================================ */
+
+/* Focus visible styles for keyboard navigation */
+*:focus-visible {
+  outline: 2px solid #ed4337;
+  outline-offset: 2px;
+  transition: outline-offset 0.2s ease;
+}
+
+/* Skip animations for keyboard users if desired */
+.keyboard-user * {
+  animation-duration: 0.01ms !important;
+}
+
+/* ================================================================
+   USAGE INSTRUCTIONS IN CODE COMMENTS
+   
+   1. Import this file in your HTML:
+      <link rel="stylesheet" href="assets/css/animations-master.css">
+   
+   2. Or import individual files:
+      <link rel="stylesheet" href="assets/css/animations.css">
+      <link rel="stylesheet" href="assets/css/transitions.css">
+      <link rel="stylesheet" href="assets/css/effects.css">
+   
+   3. Add JavaScript libraries:
+      <script src="assets/js/scroll-animations.js"></script>
+      <script src="assets/js/page-transitions.js"></script>
+   
+   4. Use classes in HTML:
+      <div class="animate-fade-in-up delay-200 scroll-reveal-up">
+        Your content
+      </div>
+   
+   5. Enable page transitions in JavaScript:
+      window.pageTransitions = new PageTransitions({
+        type: 'fade',
+        duration: 600
+      });
+   
+   For complete documentation, see ANIMATION_GUIDE.md
+   For live examples, open animation-showcase.html
+   ================================================================ */

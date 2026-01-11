@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="../css/tailwind.generated.css" rel="stylesheet">
+    <link href="../css/style.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css">
+    <script src="../js/i18n.js"></script>
+    <title>KYB Verification - Bank</title>
+</head>
+<body class="bg-gray-50">
+
+    <!-- Language Switcher (Top Right) -->
+    <div class="fixed top-4 right-4 z-50 flex items-center space-x-2 bg-white rounded-lg shadow-md p-1">
+        <button class="lang-btn px-3 py-1.5 text-sm font-medium rounded transition-all duration-200" data-lang="vi">
+            🇻🇳 VI
+        </button>
+        <button class="lang-btn px-3 py-1.5 text-sm font-medium rounded transition-all duration-200" data-lang="en">
+            🇬🇧 EN
+        </button>
+    </div>
+
+    <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-4xl w-full bg-white rounded-lg shadow-lg p-8">
+            
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-gray-900">KYB Verification</h1>
+                <p class="mt-2 text-sm text-gray-600">Know Your Business - Financial Institution Verification</p>
+                <p class="mt-1 text-xs text-gray-500">Complete all required information to access the invoice marketplace</p>
+                
+                <!-- Important Notice -->
+                <div class="mt-4 p-4 bg-amber-50 border-l-4 border-amber-400 text-left">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm font-semibold text-amber-800">Lưu ý quan trọng</p>
+                            <ul class="mt-2 text-xs text-amber-700 list-disc list-inside space-y-1">
+                                <li>Vui lòng đối chiếu trạng thái MST tại <strong>tracuunnt.gdt.gov.vn</strong></li>
+                                <li>Kiểm tra tính nhất quán người đại diện pháp luật tại <strong>dangkykinhdoanh.gov.vn</strong></li>
+                                <li>Tất cả thông tin phải chính xác và khớp với giấy tờ pháp lý</li>
+                                <li>Các trường đánh dấu <span class="text-red-500">*</span> là bắt buộc</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status Message -->
+            <div id="statusMessage" class="mb-6 hidden"></div>
+
+            <!-- KYB Form -->
+            <form id="kybForm" class="space-y-8">
+                
+                <!-- Section 1: Thông tin doanh nghiệp -->
+                <div class="border-b border-gray-200 pb-6">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">1. Thông tin doanh nghiệp</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Tên doanh nghiệp *</label>
+                            <input type="text" id="legal_name" required 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Tên doanh nghiệp (tiếng nước ngoài)</label>
+                            <input type="text" id="foreign_name" 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Tên viết tắt *</label>
+                            <input type="text" id="trade_name" required 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Mã số doanh nghiệp (MST) *</label>
+                            <input type="text" id="tax_id" required 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                            <p class="mt-1 text-xs text-gray-500">
+                                <a href="https://tracuunnt.gdt.gov.vn/tcnnt/mstcn.jsp" target="_blank" class="text-indigo-600 hover:underline">
+                                    <i class="ri-external-link-line"></i> Kiểm tra tại đây
+                                </a>
+                            </p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Mã số đăng ký kinh doanh</label>
+                            <input type="text" id="registration_number" 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Loại hình pháp lý *</label>
+                            <select id="legal_form" required 
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                                <option value="">Chọn loại hình</option>
+                                <option value="Công ty TNHH">Công ty TNHH</option>
+                                <option value="Công ty cổ phần">Công ty cổ phần</option>
+                                <option value="Ngân hàng thương mại">Ngân hàng thương mại</option>
+                                <option value="Công ty tài chính">Công ty tài chính</option>
+                                <option value="Tổ chức tín dụng">Tổ chức tín dụng</option>
+                                <option value="Chi nhánh ngân hàng">Chi nhánh ngân hàng</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Tình trạng hoạt động *</label>
+                            <select id="operation_status" required 
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                                <option value="">Chọn tình trạng</option>
+                                <option value="Đang hoạt động">Đang hoạt động</option>
+                                <option value="Tạm ngưng">Tạm ngưng</option>
+                                <option value="Ngừng hoạt động">Ngừng hoạt động</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Ngày bắt đầu thành lập *</label>
+                            <input type="date" id="establishment_date" required 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Người đại diện pháp luật *</label>
+                            <input type="text" id="legal_representative" required 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                            <p class="mt-1 text-xs text-gray-500">
+                                <a href="https://dangkykinhdoanh.gov.vn/vn/Pages/Trangchu.aspx" target="_blank" class="text-indigo-600 hover:underline">
+                                    <i class="ri-external-link-line"></i> Kiểm tra tại đây
+                                </a>
+                            </p>
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Địa chỉ trụ sở chính *</label>
+                            <textarea id="address" required rows="2"
+                                      class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: Hồ sơ pháp lý -->
+                <div class="border-b border-gray-200 pb-6">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">2. Hồ sơ pháp lý doanh nghiệp</h2>
+                    <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <p class="text-sm text-blue-800">
+                            <i class="ri-information-line"></i> 
+                            <strong>Lưu ý:</strong> Vui lòng đối chiếu trạng thái MST tại 
+                            <a href="https://tracuunnt.gdt.gov.vn/tcnnt/mstcn.jsp" target="_blank" class="text-blue-600 hover:underline font-semibold">
+                                tracuunnt.gdt.gov.vn <i class="ri-external-link-line"></i>
+                            </a>
+                        </p>
+                    </div>
+                    <div class="space-y-4">
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Trạng thái MST *
+                                <span class="text-xs text-gray-500">(Kiểm tra tại tracuunnt.gdt.gov.vn)</span>
+                            </label>
+                            <select id="tax_verification_status" required
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                                <option value="">Chọn trạng thái</option>
+                                <option value="Đang hoạt động">Đang hoạt động</option>
+                                <option value="Ngừng hoạt động">Ngừng hoạt động</option>
+                                <option value="Tạm ngừng">Tạm ngừng</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Quyết định bổ nhiệm/miễn nhiệm các chức danh quản lý chủ chốt
+                                <span class="text-xs text-red-500">(nếu có)</span>
+                            </label>
+                            <input type="file" id="appointment_decision_doc" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                            <p class="mt-1 text-xs text-gray-500">
+                                <i class="ri-file-upload-line"></i> 
+                                Upload quyết định bổ nhiệm/miễn nhiệm - Định dạng: PDF, JPG, PNG, DOC (max 10MB)
+                            </p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Danh sách cổ đông/thành viên góp vốn *
+                            </label>
+                            <input type="file" id="shareholder_list_doc" accept=".pdf,.xlsx,.csv,.xls" 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                            <p class="mt-1 text-xs text-gray-500">
+                                <i class="ri-file-excel-line"></i> 
+                                Upload danh sách cổ đông/thành viên - Định dạng: PDF, Excel (XLSX, XLS, CSV)
+                            </p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Thông tin tài khoản ngân hàng nhận/chi *
+                            </label>
+                            <textarea id="bank_account_info" required rows="4" 
+                                      placeholder="Ví dụ:&#10;- Tên ngân hàng: Vietcombank&#10;- Chi nhánh: Hà Nội&#10;- Số tài khoản: 0123456789&#10;- Tên chủ tài khoản: CÔNG TY ABC"
+                                      class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono text-sm"></textarea>
+                            <p class="mt-1 text-xs text-gray-500">
+                                <i class="ri-bank-line"></i> 
+                                Vui lòng cung cấp đầy đủ: Tên ngân hàng, chi nhánh, số tài khoản, tên chủ tài khoản
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3: Thẩm quyền tham gia dự án -->
+                <div class="border-b border-gray-200 pb-6">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">3. Thẩm quyền tham gia dự án</h2>
+                    <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <p class="text-sm text-blue-800">
+                            <i class="ri-information-line"></i> 
+                            <strong>Lưu ý:</strong> Có thể kiểm tra tính nhất quán với người đại diện pháp luật tại 
+                            <a href="https://dangkykinhdoanh.gov.vn/vn/Pages/Trangchu.aspx" target="_blank" class="text-blue-600 hover:underline font-semibold">
+                                dangkykinhdoanh.gov.vn <i class="ri-external-link-line"></i>
+                            </a>
+                        </p>
+                    </div>
+                    <div class="space-y-4">
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Nghị quyết HĐQT/HĐTV/Chủ sở hữu *
+                            </label>
+                            <input type="file" id="board_resolution_doc" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" required
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                            <p class="mt-1 text-xs text-gray-500">
+                                <i class="ri-file-text-line"></i> 
+                                Nghị quyết cho phép DN tham gia nền tảng, ký thỏa thuận, mở ví/tài khoản, phát hành/nhận claim token
+                            </p>
+                            <p class="mt-1 text-xs text-gray-400">Định dạng: PDF, JPG, PNG, DOC (max 10MB)</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Danh sách người được ủy quyền thao tác *
+                            </label>
+                            <textarea id="authorized_persons_list" required rows="5" 
+                                      placeholder="Vui lòng cung cấp thông tin chi tiết:&#10;&#10;1. Họ tên: Nguyễn Văn A&#10;   Chức vụ: Giám đốc Tài chính&#10;   Phạm vi quyền hạn: Phê duyệt invoice, thanh toán&#10;   Thời hạn: 31/12/2026&#10;&#10;2. Họ tên: Trần Thị B&#10;   Chức vụ: Kế toán trưởng&#10;   Phạm vi quyền hạn: Tạo invoice, theo dõi thanh toán&#10;   Thời hạn: 31/12/2026"
+                                      class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono text-sm"></textarea>
+                            <p class="mt-1 text-xs text-gray-500">
+                                <i class="ri-user-settings-line"></i> 
+                                Bao gồm: Họ tên, chức vụ, phạm vi quyền hạn, thời hạn ủy quyền
+                            </p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Mẫu chữ ký/ký số *
+                            </label>
+                            <input type="file" id="signature_specimen_doc" accept=".pdf,.jpg,.jpeg,.png" required
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                            <p class="mt-1 text-xs text-gray-500">
+                                <i class="ri-quill-pen-line"></i> 
+                                Upload mẫu chữ ký của người đại diện hoặc chứng thư ký số (nếu sử dụng)
+                            </p>
+                            <p class="mt-1 text-xs text-gray-400">Định dạng: PDF, JPG, PNG (max 5MB)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="space-y-4">
+                    <!-- Summary Checklist -->
+                    <div class="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                        <p class="text-sm font-semibold text-gray-700 mb-2">
+                            <i class="ri-checkbox-circle-line"></i> Checklist trước khi gửi:
+                        </p>
+                        <ul class="text-xs text-gray-600 space-y-1 ml-5">
+                            <li>✓ Đã điền đầy đủ <strong>5.1. Thông tin định danh pháp nhân</strong></li>
+                            <li>✓ Đã cung cấp <strong>5.2. Hồ sơ pháp lý doanh nghiệp</strong> (MST, danh sách cổ đông, TK ngân hàng)</li>
+                            <li>✓ Đã upload <strong>5.3. Thẩm quyền tham gia dự án</strong> (Nghị quyết, danh sách ủy quyền, mẫu chữ ký)</li>
+                            <li>✓ Đã kiểm tra MST tại tracuunnt.gdt.gov.vn</li>
+                            <li>✓ Đã xác nhận người đại diện PL tại dangkykinhdoanh.gov.vn</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="flex justify-end space-x-4">
+                        <button type="button" onclick="logout()" 
+                                class="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+                            Đăng xuất
+                        </button>
+                        <button type="submit" id="submitBtn"
+                                class="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold flex items-center space-x-2">
+                            <i class="ri-send-plane-line"></i>
+                            <span>Gửi hồ sơ KYB</span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8000/api';
+        const token = localStorage.getItem('token');
+
+        // Check authentication
+        if (!token) {
+            window.location.href = '/pages/login.html';
+        }
+
+        // Check KYB status on page load
+        async function checkKYBStatus() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/kyc/organization`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const org = await response.json();
+                    displayStatus(org.status);
+                }
+            } catch (error) {
+                console.error('Error checking KYB status:', error);
+            }
+        }
+
+        // Display status message
+        function displayStatus(status) {
+            const statusDiv = document.getElementById('statusMessage');
+            const form = document.getElementById('kybForm');
+            
+            statusDiv.classList.remove('hidden');
+
+            if (status === 'PENDING' || status === 'UNDER_REVIEW') {
+                statusDiv.className = 'mb-6 p-4 rounded-lg bg-yellow-50 border border-yellow-200';
+                statusDiv.innerHTML = '<p class="text-yellow-800"><i class="ri-time-line"></i> Hồ sơ KYB của bạn đang được xem xét. Vui lòng chờ admin phê duyệt.</p>';
+                form.style.display = 'none';
+            } else if (status === 'REJECTED') {
+                statusDiv.className = 'mb-6 p-4 rounded-lg bg-red-50 border border-red-200';
+                statusDiv.innerHTML = '<p class="text-red-800"><i class="ri-error-warning-line"></i> Hồ sơ KYB bị từ chối. Vui lòng liên hệ support.</p>';
+                form.style.display = 'none';
+            } else if (status === 'APPROVED') {
+                window.location.href = '/assets/pages/bank-dashboard.html';
+            }
+        }
+
+        // Submit KYB form
+        document.getElementById('kybForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Đang gửi...';
+
+            try {
+                // Collect form data
+                const formData = {
+                    org_type: 'BANK',
+                    legal_name: document.getElementById('legal_name').value,
+                    foreign_name: document.getElementById('foreign_name').value || null,
+                    trade_name: document.getElementById('trade_name').value,
+                    tax_id: document.getElementById('tax_id').value,
+                    registration_number: document.getElementById('registration_number').value || null,
+                    legal_form: document.getElementById('legal_form').value,
+                    operation_status: document.getElementById('operation_status').value,
+                    establishment_date: document.getElementById('establishment_date').value,
+                    legal_representative: document.getElementById('legal_representative').value,
+                    address: document.getElementById('address').value,
+                    tax_verification_status: document.getElementById('tax_verification_status').value || null,
+                    bank_account_info: document.getElementById('bank_account_info').value,
+                    authorized_persons_list: document.getElementById('authorized_persons_list').value
+                };
+
+                // Submit organization data
+                const response = await fetch(`${API_BASE_URL}/kyc/organization`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to submit KYB form');
+                }
+
+                const result = await response.json();
+                
+                // TODO: Upload documents if any selected
+                // This would require additional API endpoints for file upload
+
+                alert('✅ Hồ sơ KYB đã được gửi thành công!\n\nVui lòng chờ admin xem xét và phê duyệt.');
+                checkKYBStatus();
+                
+            } catch (error) {
+                console.error('Error submitting KYB:', error);
+                alert('❌ Lỗi khi gửi hồ sơ KYB: ' + error.message);
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Gửi hồ sơ KYB';
+            }
+        });
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = '/pages/login.html';
+        }
+
+        // Check status on page load
+        checkKYBStatus();
+    </script>
+
+</body>
+</html>

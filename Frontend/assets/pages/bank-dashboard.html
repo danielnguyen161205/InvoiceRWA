@@ -343,11 +343,60 @@
         </div>
     </div>
 
+    <!-- Dispute Resolution Modal -->
+    <div id="disputeResolutionModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="sticky top-0 bg-gradient-to-r from-red-600 to-orange-600 px-6 py-4 z-10">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="text-2xl font-bold text-white flex items-center">
+                            <i class="ri-alarm-warning-fill text-3xl mr-2"></i>
+                            Dispute Resolution - Increased Amount
+                        </h2>
+                        <p class="text-red-100 text-sm mt-1">Review and decide on invoice amount dispute</p>
+                    </div>
+                    <button onclick="closeDisputeModal()" class="text-white hover:text-red-200 transition-colors">
+                        <i class="ri-close-line text-3xl"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div id="disputeDetailContent" class="p-6">
+                <div class="flex justify-center items-center py-12">
+                    <i class="ri-loader-4-line text-4xl text-red-600 animate-spin"></i>
+                </div>
+            </div>
+
+            <div class="sticky bottom-0 bg-gray-50 border-t-2 border-red-200 p-6 z-10">
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Bank Decision Comments</label>
+                    <textarea id="disputeResolutionComments" rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="Enter your decision rationale..."></textarea>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <button onclick="resolveDispute('ACCEPT_INCREASED')" class="bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 font-semibold transition-colors flex items-center justify-center">
+                        <i class="ri-checkbox-circle-line text-xl mr-2"></i>
+                        Accept Increased Amount & Continue Financing
+                    </button>
+                    <button onclick="resolveDispute('REJECT_INCREASED')" class="bg-red-600 text-white py-3 px-6 rounded-lg hover:bg-red-700 font-semibold transition-colors flex items-center justify-center">
+                        <i class="ri-close-circle-line text-xl mr-2"></i>
+                        Reject - Request Resubmission
+                    </button>
+                </div>
+
+                <button onclick="closeDisputeModal()" class="w-full mt-3 bg-gray-500 text-white py-3 px-4 rounded-lg hover:bg-gray-600 font-semibold transition-colors">
+                    <i class="ri-arrow-left-line mr-2"></i>Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        const API_BASE_URL = 'http://localhost:8000/api';
+        const API_BASE_URL = 'http://127.0.0.1:8000/api';
         let selectedInvoiceId = null;
         let selectedRequestId = null;
         let currentInvoiceData = null; // Store current invoice with request info
+        let currentDisputedInvoice = null; // Store current disputed invoice
         let currentView = 'available'; // Track current view
         let autoRefreshInterval = null;
 
@@ -611,7 +660,17 @@
                                 class="px-3 py-1 bg-indigo-100 text-indigo-600 rounded-md hover:bg-indigo-200 transition-colors">
                             View Details
                         </button>
-                        ${invoice.has_request && invoice.request_status === 'PENDING' ? 
+                        ${invoice.status === 'DISPUTED' && invoice.dispute_type === 'POST_FINANCE' ? 
+                            `<button onclick="openDisputeModal(${invoice.id})" 
+                                    class="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors animate-pulse">
+                                <i class="ri-alarm-warning-line"></i> Resolve Dispute
+                            </button>` :
+                            invoice.status === 'FINANCING' && invoice.dispute_resolution_action === 'ACCEPT_INCREASED' && invoice.additional_financing_amount ?
+                            `<button onclick="confirmAdditionalDisbursement(${invoice.id})" 
+                                    class="px-3 py-1 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors animate-pulse">
+                                <i class="ri-bank-card-line"></i> Confirm Disbursement (${formatCurrency(invoice.additional_financing_amount)})
+                            </button>` :
+                            invoice.has_request && invoice.request_status === 'PENDING' ? 
                             `<button onclick="startFinancing(${invoice.request_id})" 
                                     class="px-3 py-1 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition-colors">
                                 Financing
@@ -997,6 +1056,233 @@
             return date.toLocaleDateString('vi-VN');
         }
 
+        // ========== DISPUTE RESOLUTION FUNCTIONS ==========
+        
+        // Open dispute modal
+        async function openDisputeModal(invoiceId) {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`${API_BASE_URL}/invoices/${invoiceId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!res.ok) throw new Error('Failed to load invoice');
+                
+                const invoice = await res.json();
+                currentDisputedInvoice = invoice;
+                
+                document.getElementById('disputeResolutionModal').classList.remove('hidden');
+                document.getElementById('disputeResolutionModal').classList.add('flex');
+                
+                loadDisputeDetails(invoice);
+            } catch (error) {
+                console.error('Error opening dispute modal:', error);
+                alert('❌ Failed to load dispute details:\n\n' + error.message);
+            }
+        }
+
+        // Load dispute details
+        function loadDisputeDetails(invoice) {
+            const content = document.getElementById('disputeDetailContent');
+            const previousAmount = invoice.previous_amount || invoice.amount;
+            const formatCurrency = (amount) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+            
+            content.innerHTML = `
+                <div class="bg-red-50 border-2 border-red-200 rounded-lg p-6 mb-6">
+                    <h3 class="text-xl font-bold text-red-800 mb-4">Dispute Case: ${invoice.dispute_case_id || 'N/A'}</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-sm font-semibold text-gray-700">Dispute Type</label>
+                            <p class="text-lg font-bold text-red-600">${invoice.dispute_type || 'N/A'}</p>
+                        </div>
+                        <div>
+                            <label class="text-sm font-semibold text-gray-700">Disputed At</label>
+                            <p class="text-gray-800">${invoice.disputed_at ? new Date(invoice.disputed_at).toLocaleString() : 'N/A'}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">Invoice Information</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-sm font-semibold text-gray-600">Invoice Number</label>
+                            <p class="text-gray-900 font-medium">#${invoice.invoice_number || invoice.id}</p>
+                        </div>
+                        <div>
+                            <label class="text-sm font-semibold text-gray-600">Serial No</label>
+                            <p class="text-gray-900">${invoice.serial_no || 'N/A'}</p>
+                        </div>
+                        <div>
+                            <label class="text-sm font-semibold text-gray-600">Buyer</label>
+                            <p class="text-gray-900">${invoice.buyer_name || 'N/A'}</p>
+                        </div>
+                        <div>
+                            <label class="text-sm font-semibold text-gray-600">Issue Date</label>
+                            <p class="text-gray-900">${formatDate(invoice.issue_date)}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-orange-300 rounded-lg p-6 mb-6">
+                    <h3 class="text-lg font-bold text-orange-800 mb-4">Amount Change Analysis</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-white rounded-lg p-4 shadow-sm">
+                            <label class="text-sm font-semibold text-gray-600">Previous Financed Amount</label>
+                            <p class="text-2xl font-bold text-gray-700">${formatCurrency(previousAmount)}</p>
+                        </div>
+                        <div class="bg-white rounded-lg p-4 shadow-sm">
+                            <label class="text-sm font-semibold text-gray-600">New Disputed Amount</label>
+                            <p class="text-2xl font-bold text-green-600">${formatCurrency(invoice.amount)}</p>
+                        </div>
+                        <div class="bg-white rounded-lg p-4 shadow-sm border-2 border-red-300">
+                            <label class="text-sm font-semibold text-red-600">Additional Financing Needed</label>
+                            <p class="text-2xl font-bold text-red-600">${formatCurrency(invoice.amount - previousAmount)}</p>
+                            <p class="text-xs text-gray-600 mt-1">Bank must disburse if accepted</p>
+                        </div>
+                    </div>
+                </div>
+                
+                ${invoice.dispute_description ? `
+                <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-3">Dispute Description</h3>
+                    <div class="bg-gray-50 rounded p-4">
+                        <p class="text-gray-700 whitespace-pre-wrap">${invoice.dispute_description}</p>
+                    </div>
+                </div>
+                ` : ''}
+                
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                    <h3 class="text-lg font-bold text-blue-800 mb-3">Bank Decision Required</h3>
+                    <div class="space-y-3 text-sm text-gray-700">
+                        <div class="flex items-start">
+                            <i class="ri-checkbox-circle-line text-green-600 text-xl mr-2"></i>
+                            <div>
+                                <p class="font-semibold text-green-700">Accept Increased Amount:</p>
+                                <p>Invoice status → FINANCING. Bank will disburse additional ${formatCurrency(invoice.amount - previousAmount)} to SME.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <i class="ri-close-circle-line text-red-600 text-xl mr-2"></i>
+                            <div>
+                                <p class="font-semibold text-red-700">Reject Increased Amount:</p>
+                                <p>Invoice status → SUBMITTED. SME/Buyer must create new invoice for resubmission.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Resolve dispute
+        async function resolveDispute(action) {
+            if (!currentDisputedInvoice) {
+                alert('No invoice selected');
+                return;
+            }
+            
+            const comments = document.getElementById('disputeResolutionComments').value.trim();
+            if (!comments) {
+                alert('Please enter decision comments');
+                return;
+            }
+            
+            const actionText = action === 'ACCEPT_INCREASED' ? 'ACCEPT the increased amount' : 'REJECT and require resubmission';
+            if (!confirm(`⚠️ Confirm Decision?\n\nAction: ${actionText}\n\nInvoice: #${currentDisputedInvoice.invoice_number || currentDisputedInvoice.id}\n\nThis action cannot be undone.`)) {
+                return;
+            }
+            
+            try {
+                const token = localStorage.getItem('token');
+                const payload = { action, comments };
+                if (action === 'ACCEPT_INCREASED') {
+                    payload.new_amount = currentDisputedInvoice.amount;
+                }
+                
+                const res = await fetch(`${API_BASE_URL}/invoices/${currentDisputedInvoice.id}/dispute/resolve`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!res.ok) {
+                    const error = await res.json();
+                    throw new Error(error.detail || 'Failed to resolve dispute');
+                }
+                
+                const result = await res.json();
+                alert(`✅ Dispute Resolved Successfully!\n\nAction: ${result.action}\nNew Status: ${result.new_status}`);
+                
+                closeDisputeModal();
+                loadPurchasedInvoices(); // Refresh portfolio
+            } catch (error) {
+                console.error('Error resolving dispute:', error);
+                alert('❌ Error resolving dispute:\n\n' + error.message);
+            }
+        }
+
+        // Close dispute modal
+        function closeDisputeModal() {
+            document.getElementById('disputeResolutionModal').classList.add('hidden');
+            document.getElementById('disputeResolutionModal').classList.remove('flex');
+            document.getElementById('disputeResolutionComments').value = '';
+            currentDisputedInvoice = null;
+        }
+
+        // Confirm additional disbursement
+        async function confirmAdditionalDisbursement(invoiceId) {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`${API_BASE_URL}/invoices/${invoiceId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!res.ok) throw new Error('Failed to load invoice');
+                const invoice = await res.json();
+                
+                if (invoice.status !== 'FINANCING' || !invoice.additional_financing_amount) {
+                    alert('❌ This invoice is not pending additional disbursement.');
+                    return;
+                }
+                
+                const formatCurrency = (amount) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+                const confirmMessage = `💰 Confirm Additional Disbursement\n\n` +
+                    `Invoice: #${invoice.invoice_number || invoice.id}\n` +
+                    `Additional to Disburse: ${formatCurrency(invoice.additional_financing_amount)}\n\n` +
+                    `Have you completed the disbursement to SME?`;
+                
+                if (!confirm(confirmMessage)) return;
+                
+                const confirmRes = await fetch(`${API_BASE_URL}/invoices/${invoiceId}/confirm-additional-disbursement`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        disbursed_amount: invoice.additional_financing_amount,
+                        comments: 'Bank confirmed additional disbursement for increased amount'
+                    })
+                });
+                
+                if (!confirmRes.ok) {
+                    const error = await confirmRes.json();
+                    throw new Error(error.detail || 'Failed to confirm disbursement');
+                }
+                
+                alert(`✅ Additional Disbursement Confirmed!\n\nAmount: ${formatCurrency(invoice.additional_financing_amount)}`);
+                loadPurchasedInvoices(); // Refresh portfolio
+            } catch (error) {
+                console.error('Error confirming disbursement:', error);
+                alert('❌ Failed to confirm disbursement:\n\n' + error.message);
+            }
+        }
+
         // Initialize bank dashboard with auto-refresh
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🏦 Bank dashboard loaded - initializing auto-refresh');
@@ -1006,6 +1292,18 @@
             
             // Update last refresh time initially
             updateLastRefreshTime();
+        });
+    </script>
+    
+    <!-- Auth Guard -->
+    <script src="../js/auth-guard.js"></script>
+    <script>
+        // Protect this page - require authentication (run after page loads)
+        window.addEventListener('DOMContentLoaded', function() {
+            console.log("📄 Bank dashboard loaded - checking auth...");
+            if (typeof requireAuth === 'function') {
+                requireAuth();
+            }
         });
     </script>
     

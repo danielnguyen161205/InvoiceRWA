@@ -1,23 +1,12 @@
-// Check authentication and ensure user is ADMIN
-requireAuth();
+// Authentication is handled by auth-guard.js loaded in HTML
+// Auth check happens BEFORE this script runs via DOMContentLoaded in HTML
 
 // API_URL is defined in api.js
 let currentOrgId = null;
 
-// Check if user has ADMIN role
-const token = localStorage.getItem('token');
-if (token) {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    const roles = payload.roles || (payload.role ? [payload.role] : []);
-    
-    if (!roles.includes('ADMIN')) {
-        alert('Access denied. Admin privileges required.');
-        window.location.href = '/pages/login.html';
-    }
-}
-
 // Load dashboard data on page load
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('📄 Admin dashboard DOMContentLoaded - loading data...');
     console.log('Admin dashboard loaded');
     loadOrganizations();
     loadInvoices();
@@ -271,12 +260,28 @@ async function loadInvoices() {
                             `<div class="text-xs text-red-600 font-semibold">⚠️ Thiếu Org ID</div>`
                         }
                     </td>
-                    <td class="px-4 py-3 text-sm font-semibold text-green-600">${amount}</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-green-600">
+                        ${amount}
+                        ${inv.status === 'DISPUTED' && inv.increased_amount ? `
+                            <div class="text-xs mt-1">
+                                <span class="text-gray-500">Was: ${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(inv.previous_amount || inv.amount)}</span>
+                                <i class="ri-arrow-right-line text-orange-500"></i>
+                                <span class="text-orange-600 font-bold">New: ${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(inv.increased_amount)}</span>
+                            </div>
+                        ` : ''}
+                    </td>
                     <td class="px-4 py-3">
                         <span class="${statusClass} px-3 py-1 rounded-full text-xs font-semibold flex items-center w-fit">
                             <i class="${statusIcon} mr-1"></i>
                             ${inv.status}
                         </span>
+                        ${inv.status === 'DISPUTED' && inv.dispute_type ? `
+                            <div class="mt-1">
+                                <span class="px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs">
+                                    ${inv.dispute_type === 'POST_FINANCE' ? '💰 Post-Finance' : '📋 Pre-Finance'}
+                                </span>
+                            </div>
+                        ` : ''}
                     </td>
                     <td class="px-4 py-3 text-center">
                         ${inv.token_id ? `
@@ -285,7 +290,7 @@ async function loadInvoices() {
                                     <i class="ri-checkbox-circle-line mr-1"></i>Minted
                                 </span>
                                 <span class="text-xs text-gray-500" title="Token ID: ${inv.token_id}">ID: ${inv.token_id}</span>
-                                <span class="text-xs font-semibold ${inv.bank_id ? 'text-blue-600 bg-blue-50' : 'text-green-600 bg-green-50'} px-2 py-0.5 rounded" title="${inv.bank_id ? 'NFT owned by Bank (after financing)' : 'NFT owned by SME (original owner)'}">
+                                <span class="text-xs font-semibold ${inv.bank_id ? 'text-blue-600 bg-blue-50' : 'text-green-600 bg-green-50'} px-2 py-0.5 rounded" title="${inv.bank_id ? 'Token owned by Bank (after financing)' : 'Token owned by SME (original owner)'}">
                                     ${inv.bank_id ? '👤 Bank' : '👤 SME'}
                                 </span>
                             </div>
@@ -304,10 +309,23 @@ async function loadInvoices() {
                         <div class="text-xs text-gray-500">Created: ${created}</div>
                     </td>
                     <td class="px-4 py-3 text-center">
-                        <div class="flex gap-2 justify-center">
+                        <div class="flex gap-2 justify-center flex-wrap">
                             <button onclick="viewInvoiceDetail(${inv.id})" class="px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors">
                                 <i class="ri-file-line mr-1"></i>View
                             </button>
+                            ${inv.status === 'DISPUTED' && inv.dispute_type === 'POST_FINANCE' ? `
+                                <button onclick="openDisputeModal(${inv.id})" class="px-3 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors animate-pulse">
+                                    <i class="ri-alarm-warning-line mr-1"></i>Resolve Dispute
+                                </button>
+                            ` : ''}
+                            ${inv.status === 'FINANCING' && inv.dispute_resolution_action === 'ACCEPT_INCREASED' && inv.additional_financing_amount ? `
+                                <button onclick="confirmAdditionalDisbursement(${inv.id})" class="px-3 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 transition-colors animate-pulse">
+                                    <i class="ri-bank-card-line mr-1"></i>Confirm Disbursement
+                                </button>
+                                <div class="text-xs text-purple-700 font-bold">
+                                    Additional: ${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(inv.additional_financing_amount)}
+                                </div>
+                            ` : ''}
                             ${canApprove ? `
                                 <button onclick="approveInvoice(${inv.id})" class="px-3 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors">
                                     <i class="ri-checkbox-line mr-1"></i>Approve
@@ -319,11 +337,11 @@ async function loadInvoices() {
                             ${(inv.status === 'SUBMITTED' || inv.status === 'APPROVED') && !inv.token_id ? `
                                 ${!inv.sme_org_id || !inv.buyer_org_id ? `
                                     <button onclick="alert('⚠️ Cannot mint NFT:\\n\\nThis invoice is missing ${!inv.sme_org_id ? 'SME organization' : ''} ${!inv.sme_org_id && !inv.buyer_org_id ? 'and' : ''} ${!inv.buyer_org_id ? 'Buyer organization' : ''}.\\n\\nPlease edit the invoice to assign the missing organization(s).')" class="px-3 py-2 bg-orange-400 text-white text-sm rounded-lg hover:bg-orange-500 transition-colors" title="Missing Organization">
-                                        <i class="ri-alert-line mr-1"></i>⚠️ Mint NFT
+                                        <i class="ri-alert-line mr-1"></i>⚠️ Mint Token
                                     </button>
                                 ` : `
-                                    <button onclick="mintInvoiceNFT(${inv.id})" class="px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors" title="Mint NFT">
-                                        <i class="ri-nft-line mr-1"></i>Mint NFT
+                                    <button onclick="mintInvoiceNFT(${inv.id})" class="px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors" title="Mint Token">
+                                        <i class="ri-nft-line mr-1"></i>Mint Token
                                     </button>
                                 `}
                             ` : ''}
@@ -925,11 +943,11 @@ async function viewInvoiceDetail(invoiceId) {
                             <p class="text-sm text-gray-700 mt-1">${inv.tokenized_at ? new Date(inv.tokenized_at).toLocaleString('vi-VN') : 'N/A'}</p>
                         </div>
                         <div class="bg-white p-4 rounded-lg shadow-sm">
-                            <label class="text-xs font-semibold text-gray-500 uppercase">Current NFT Owner</label>
+                            <label class="text-xs font-semibold text-gray-500 uppercase">Current Token Owner</label>
                             <p class="text-sm font-semibold mt-1 ${inv.bank_id ? 'text-blue-600' : 'text-green-600'}">
                                 ${inv.bank_id ? '🏦 Bank (Financed)' : '🏭 SME (Original Owner)'}
                             </p>
-                            ${inv.bank_id ? `<p class="text-xs text-gray-500 mt-1">NFT transferred to bank after financing</p>` : `<p class="text-xs text-gray-500 mt-1">NFT still with original seller</p>`}
+                            ${inv.bank_id ? `<p class="text-xs text-gray-500 mt-1">Token transferred to bank after financing</p>` : `<p class="text-xs text-gray-500 mt-1">Token still with original seller</p>`}
                         </div>
                     </div>
                 </div>
@@ -1146,7 +1164,7 @@ async function rejectInvoice(invoiceId) {
 
 // Mint NFT for invoice (Admin only)
 async function mintInvoiceNFT(invoiceId) {
-    if (!confirm('🎨 Mint NFT for this invoice?\n\nThis will:\n- Create an ERC-721 token on blockchain\n- Initial owner: SME organization\n- Transfer to Bank when purchased\n\nMake sure both SME and Buyer organizations have wallet addresses configured.')) {
+    if (!confirm('🎨 Mint Token for this invoice?\n\nThis will:\n- Create an ERC-721 token on blockchain\n- Initial owner: SME organization\n- Transfer to Bank when purchased\n\nMake sure both SME and Buyer organizations have wallet addresses configured.')) {
         return;
     }
     
@@ -1165,17 +1183,17 @@ async function mintInvoiceNFT(invoiceId) {
         }
         
         const result = await res.json();
-        alert(`✅ NFT Minted Successfully!\n\n` +
+        alert(`✅ Token Minted Successfully!\n\n` +
               `Token ID: ${result.token_id}\n` +
               `Transaction Hash: ${result.tx_hash}\n` +
               `Gas Used: ${result.gas_used}\n\n` +
-              `The NFT is now owned by the SME organization and will be transferred to Bank when purchased.`);
+              `The Token is now owned by the SME organization and will be transferred to Bank when purchased.`);
         
         loadInvoices();
         
     } catch (error) {
-        console.error('Error minting NFT:', error);
-        alert('❌ Failed to mint NFT:\n\n' + error.message);
+        console.error('Error minting Token:', error);
+        alert('❌ Failed to mint Token:\n\n' + error.message);
     }
 }
 
@@ -1208,7 +1226,7 @@ async function checkDuplicateWallets() {
                 message += '\n';
             });
             
-            message += `\n💡 Mỗi organization phải có wallet riêng để mint NFT!\n`;
+            message += `\n💡 Mỗi organization phải có wallet riêng để mint Token!\n`;
             message += `Hãy vào Organization Detail để cập nhật wallet address.`;
             
             alert(message);
@@ -1223,3 +1241,494 @@ async function checkDuplicateWallets() {
         alert('❌ Lỗi khi kiểm tra wallets:\n\n' + error.message);
     }
 }
+
+// ====== DISPUTE RESOLUTION FUNCTIONS ======
+let currentDisputedInvoice = null;
+
+// Open dispute modal
+async function openDisputeModal(invoiceId) {
+    try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${API_URL}/api/invoices/${invoiceId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (!res.ok) {
+            throw new Error('Failed to load invoice');
+        }
+        
+        const invoice = await res.json();
+        currentDisputedInvoice = invoice;
+        
+        // Show modal
+        document.getElementById('disputeResolutionModal').classList.remove('hidden');
+        document.getElementById('disputeResolutionModal').classList.add('flex');
+        
+        // Load dispute details
+        loadDisputeDetails(invoice);
+        
+    } catch (error) {
+        console.error('Error opening dispute modal:', error);
+        alert('Error loading dispute details: ' + error.message);
+    }
+}
+
+// Load dispute details into modal
+function loadDisputeDetails(invoice) {
+    const content = document.getElementById('disputeDetailContent');
+    
+    // Calculate amounts
+    const originalAmount = invoice.amount;
+    const previousAmount = invoice.previous_amount || originalAmount;
+    const disputeType = invoice.dispute_type || 'N/A';
+    const caseId = invoice.dispute_case_id || 'N/A';
+    
+    const formatCurrency = (amount) => {
+        return new Intl.NumberFormat('vi-VN', { 
+            style: 'currency', 
+            currency: 'VND' 
+        }).format(amount);
+    };
+    
+    content.innerHTML = `
+        <!-- Dispute Overview -->
+        <div class="bg-red-50 border-2 border-red-200 rounded-lg p-6 mb-6">
+            <h3 class="text-xl font-bold text-red-800 mb-4 flex items-center">
+                <i class="ri-error-warning-line text-2xl mr-2"></i>
+                Dispute Case: ${caseId}
+            </h3>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="text-sm font-semibold text-gray-700">Dispute Type</label>
+                    <p class="text-lg font-bold text-red-600">${disputeType}</p>
+                </div>
+                <div>
+                    <label class="text-sm font-semibold text-gray-700">Disputed At</label>
+                    <p class="text-gray-800">${invoice.disputed_at ? new Date(invoice.disputed_at).toLocaleString() : 'N/A'}</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Editable Invoice Details Form -->
+        <div class="bg-white border-2 border-orange-300 rounded-lg p-6 mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-orange-800 flex items-center">
+                    <i class="ri-edit-box-line text-2xl mr-2"></i>
+                    Edit Invoice Details (Review & Update)
+                </h3>
+                <button id="toggleEditBtn" onclick="toggleDisputeEdit()" class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-semibold">
+                    <i class="ri-pencil-line mr-1"></i>Enable Edit
+                </button>
+            </div>
+            
+            <form id="disputeInvoiceForm" class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="text-sm font-semibold text-gray-700">Invoice Number *</label>
+                    <input type="text" id="dispute_invoice_number" value="${invoice.invoice_number || ''}" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1 bg-gray-50" disabled>
+                </div>
+                <div>
+                    <label class="text-sm font-semibold text-gray-700">Serial Number</label>
+                    <input type="text" id="dispute_serial_no" value="${invoice.serial_no || ''}" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1 bg-gray-50" disabled>
+                </div>
+                <div>
+                    <label class="text-sm font-semibold text-gray-700">Amount (VND) *</label>
+                    <input type="number" id="dispute_amount" value="${invoice.amount}" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1 bg-gray-50 font-bold text-lg text-green-700" disabled>
+                    <p class="text-xs text-gray-500 mt-1">Previous: ${formatCurrency(previousAmount)}</p>
+                </div>
+                <div>
+                    <label class="text-sm font-semibold text-gray-700">Issue Date</label>
+                    <input type="date" id="dispute_issue_date" value="${invoice.issue_date || ''}" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1 bg-gray-50" disabled>
+                </div>
+                <div>
+                    <label class="text-sm font-semibold text-gray-700">SME (Seller)</label>
+                    <input type="text" value="${invoice.seller_name || 'N/A'}" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1 bg-gray-100" disabled readonly>
+                </div>
+                <div>
+                    <label class="text-sm font-semibold text-gray-700">Buyer</label>
+                    <input type="text" value="${invoice.buyer_name || 'N/A'}" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1 bg-gray-100" disabled readonly>
+                </div>
+                <div class="col-span-2">
+                    <label class="text-sm font-semibold text-gray-700">Lookup Code</label>
+                    <input type="text" id="dispute_lookup_code" value="${invoice.lookup_code || ''}" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1 bg-gray-50" disabled>
+                </div>
+                <div class="col-span-2">
+                    <label class="text-sm font-semibold text-gray-700">Funding Purpose</label>
+                    <textarea id="dispute_funding_purpose" rows="2" 
+                              class="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1 bg-gray-50" disabled>${invoice.funding_purpose || ''}</textarea>
+                </div>
+            </form>
+            
+            <div class="mt-4 flex items-center space-x-3">
+                <button id="saveDisputeEditBtn" onclick="saveDisputeInvoiceEdit()" 
+                        class="hidden px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold">
+                    <i class="ri-save-line mr-2"></i>Save Changes
+                </button>
+                <button id="cancelDisputeEditBtn" onclick="cancelDisputeEdit()" 
+                        class="hidden px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                    <i class="ri-close-line mr-2"></i>Cancel
+                </button>
+                <span id="editWarning" class="hidden text-sm text-orange-700 font-semibold">
+                    <i class="ri-alert-line mr-1"></i>Editing enabled - Review changes before deciding
+                </span>
+            </div>
+        </div>
+        
+        <!-- Amount Comparison (Dynamic) -->
+        <div id="amountComparisonSection" class="bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-orange-300 rounded-lg p-6 mb-6">
+            <h3 class="text-lg font-bold text-orange-800 mb-4 flex items-center">
+                <i class="ri-money-dollar-circle-line text-2xl mr-2"></i>
+                Amount Change Analysis
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-white rounded-lg p-4 shadow-sm">
+                    <label class="text-sm font-semibold text-gray-600">Previous Financed Amount</label>
+                    <p class="text-2xl font-bold text-gray-700">${formatCurrency(previousAmount)}</p>
+                </div>
+                <div class="bg-white rounded-lg p-4 shadow-sm">
+                    <label class="text-sm font-semibold text-gray-600">New Disputed Amount</label>
+                    <p id="newAmountDisplay" class="text-2xl font-bold text-green-600">${formatCurrency(originalAmount)}</p>
+                </div>
+                <div class="bg-white rounded-lg p-4 shadow-sm border-2 border-red-300">
+                    <label class="text-sm font-semibold text-red-600">Additional Financing Needed</label>
+                    <p id="additionalAmountDisplay" class="text-2xl font-bold text-red-600">${formatCurrency(originalAmount - previousAmount)}</p>
+                    <p class="text-xs text-gray-600 mt-1">Bank must disburse if accepted</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Dispute Description -->
+        ${invoice.dispute_description ? `
+        <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+            <h3 class="text-lg font-bold text-gray-800 mb-3">Dispute Description</h3>
+            <div class="bg-gray-50 rounded p-4">
+                <p class="text-gray-700 whitespace-pre-wrap">${invoice.dispute_description}</p>
+            </div>
+            ${invoice.dispute_reason ? `
+                <div class="mt-3">
+                    <span class="inline-block px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-semibold">
+                        Reason: ${invoice.dispute_reason}
+                    </span>
+                </div>
+            ` : ''}
+        </div>
+        ` : ''}
+        
+        <!-- Decision Instructions -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <h3 class="text-lg font-bold text-blue-800 mb-3 flex items-center">
+                <i class="ri-information-line text-xl mr-2"></i>
+                Bank Decision Required
+            </h3>
+            <div class="space-y-3 text-sm text-gray-700">
+                <div class="flex items-start">
+                    <i class="ri-checkbox-circle-line text-green-600 text-xl mr-2 mt-0.5"></i>
+                    <div>
+                        <p class="font-semibold text-green-700">Accept Increased Amount:</p>
+                        <p>Invoice status → FINANCING. Bank will disburse additional amount to SME. Then normal workflow continues.</p>
+                    </div>
+                </div>
+                <div class="flex items-start">
+                    <i class="ri-close-circle-line text-red-600 text-xl mr-2 mt-0.5"></i>
+                    <div>
+                        <p class="font-semibold text-red-700">Reject Increased Amount:</p>
+                        <p>Invoice status → SUBMITTED. SME/Buyer must create new invoice linked to this one for resubmission.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Toggle edit mode for dispute invoice
+function toggleDisputeEdit() {
+    const inputs = document.querySelectorAll('#disputeInvoiceForm input:not([readonly]), #disputeInvoiceForm textarea');
+    const toggleBtn = document.getElementById('toggleEditBtn');
+    const saveBtn = document.getElementById('saveDisputeEditBtn');
+    const cancelBtn = document.getElementById('cancelDisputeEditBtn');
+    const warning = document.getElementById('editWarning');
+    
+    const isDisabled = inputs[0].disabled;
+    
+    inputs.forEach(input => {
+        input.disabled = !isDisabled;
+        if (!isDisabled) {
+            input.classList.remove('bg-white', 'border-orange-300');
+            input.classList.add('bg-gray-50');
+        } else {
+            input.classList.remove('bg-gray-50');
+            input.classList.add('bg-white', 'border-orange-300');
+        }
+    });
+    
+    if (isDisabled) {
+        toggleBtn.classList.add('hidden');
+        saveBtn.classList.remove('hidden');
+        cancelBtn.classList.remove('hidden');
+        warning.classList.remove('hidden');
+    } else {
+        toggleBtn.classList.remove('hidden');
+        saveBtn.classList.add('hidden');
+        cancelBtn.classList.add('hidden');
+        warning.classList.add('hidden');
+    }
+}
+
+// Cancel dispute edit
+function cancelDisputeEdit() {
+    if (!confirm('Discard changes?')) return;
+    loadDisputeDetails(currentDisputedInvoice);
+}
+
+// Save dispute invoice edit
+async function saveDisputeInvoiceEdit() {
+    if (!currentDisputedInvoice) return;
+    
+    const updatedData = {
+        invoice_number: document.getElementById('dispute_invoice_number').value,
+        serial_no: document.getElementById('dispute_serial_no').value,
+        amount: parseFloat(document.getElementById('dispute_amount').value),
+        issue_date: document.getElementById('dispute_issue_date').value,
+        lookup_code: document.getElementById('dispute_lookup_code').value,
+        funding_purpose: document.getElementById('dispute_funding_purpose').value,
+        edit_note: 'Updated invoice during dispute resolution'
+    };
+    
+    if (!updatedData.amount || updatedData.amount <= 0) {
+        alert('Please enter a valid amount');
+        return;
+    }
+    
+    if (!confirm(`Save changes to invoice?\n\nNew amount: ${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(updatedData.amount)}`)) {
+        return;
+    }
+    
+    try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${API_URL}/api/invoices/${currentDisputedInvoice.id}/admin-edit`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(updatedData)
+        });
+        
+        if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.detail || 'Failed to update invoice');
+        }
+        
+        const result = await res.json();
+        
+        // Reload invoice from server to get updated data
+        const invoiceRes = await fetch(`${API_URL}/api/invoices/${currentDisputedInvoice.id}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (invoiceRes.ok) {
+            currentDisputedInvoice = await invoiceRes.json();
+        }
+        
+        alert('✅ Invoice updated successfully!');
+        loadDisputeDetails(currentDisputedInvoice);
+        
+        // Update amount comparison dynamically
+        const previousAmount = currentDisputedInvoice.previous_amount || currentDisputedInvoice.amount;
+        const formatCurrency = (amount) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+        document.getElementById('newAmountDisplay').textContent = formatCurrency(currentDisputedInvoice.amount);
+        document.getElementById('additionalAmountDisplay').textContent = formatCurrency(currentDisputedInvoice.amount - previousAmount);
+        
+    } catch (error) {
+        console.error('Error updating invoice:', error);
+        alert('❌ Failed to update invoice:\n\n' + error.message);
+    }
+}
+
+// Resolve dispute
+async function resolveDispute(action) {
+    if (!currentDisputedInvoice) {
+        alert('No invoice selected');
+        return;
+    }
+    
+    const comments = document.getElementById('disputeResolutionComments').value.trim();
+    
+    if (!comments) {
+        alert('Please enter decision comments');
+        return;
+    }
+    
+    const actionText = action === 'ACCEPT_INCREASED' 
+        ? 'ACCEPT the increased amount and continue financing' 
+        : 'REJECT and require resubmission';
+    
+    if (!confirm(`⚠️ Confirm Decision?\n\nAction: ${actionText}\n\nInvoice: #${currentDisputedInvoice.invoice_number || currentDisputedInvoice.id}\n\nThis action cannot be undone. Are you sure?`)) {
+        return;
+    }
+    
+    try {
+        const token = localStorage.getItem('token');
+        
+        const payload = {
+            action: action,
+            comments: comments
+        };
+        
+        // Add new_amount if accepting
+        if (action === 'ACCEPT_INCREASED') {
+            payload.new_amount = currentDisputedInvoice.amount;
+        }
+        
+        const res = await fetch(`${API_URL}/api/invoices/${currentDisputedInvoice.id}/dispute/resolve`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.detail || 'Failed to resolve dispute');
+        }
+        
+        const result = await res.json();
+        
+        let successMessage = `✅ Dispute Resolved Successfully!\n\n`;
+        successMessage += `Case ID: ${result.case_id}\n`;
+        successMessage += `Action: ${result.action}\n`;
+        successMessage += `New Status: ${result.new_status}\n\n`;
+        
+        if (result.action === 'ACCEPT_INCREASED') {
+            successMessage += `Previous Amount: ${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(result.previous_amount)}\n`;
+            successMessage += `New Amount: ${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(result.increased_amount)}\n`;
+            successMessage += `Additional Financing: ${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(result.additional_financing_amount)}\n\n`;
+            successMessage += `⏭️ Next: Bank must disburse the additional amount to SME.`;
+        } else {
+            successMessage += `📝 Next: ${result.instructions || 'SME/Buyer must create new invoice'}`;
+        }
+        
+        alert(successMessage);
+        
+        closeDisputeModal();
+        loadInvoices();
+        loadStats();
+        
+    } catch (error) {
+        console.error('Error resolving dispute:', error);
+        alert('❌ Error resolving dispute:\n\n' + error.message);
+    }
+}
+
+// Close dispute modal
+function closeDisputeModal() {
+    document.getElementById('disputeResolutionModal').classList.add('hidden');
+    document.getElementById('disputeResolutionModal').classList.remove('flex');
+    document.getElementById('disputeResolutionComments').value = '';
+    currentDisputedInvoice = null;
+}
+
+// Create linked invoice for rejected disputes
+async function createLinkedInvoice() {
+    if (!currentDisputedInvoice) {
+        alert('No disputed invoice selected');
+        return;
+    }
+    
+    if (confirm('Create new invoice linked to this dispute?\n\nThis will open a form pre-filled with current invoice data.')) {
+        // Store linked invoice ID and navigate to create page
+        localStorage.setItem('linked_invoice_id', currentDisputedInvoice.id);
+        localStorage.setItem('linked_invoice_data', JSON.stringify({
+            invoice_number: currentDisputedInvoice.invoice_number,
+            serial_no: currentDisputedInvoice.serial_no,
+            amount: currentDisputedInvoice.previous_amount,
+            seller_id: currentDisputedInvoice.seller_id,
+            buyer_id: currentDisputedInvoice.buyer_id,
+            funding_purpose: currentDisputedInvoice.funding_purpose,
+            issue_date: currentDisputedInvoice.issue_date
+        }));
+        
+        alert('✅ Linked invoice data saved!\n\nPlease go to invoice creation page to submit the new invoice.\n\nNote: The form will be pre-filled with previous data.');
+        
+        closeDisputeModal();
+    }
+}
+
+// Confirm additional disbursement after accepting increased amount
+async function confirmAdditionalDisbursement(invoiceId) {
+    try {
+        const token = localStorage.getItem('token');
+        
+        // Get invoice details first
+        const res = await fetch(`${API_URL}/api/invoices/${invoiceId}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (!res.ok) throw new Error('Failed to load invoice');
+        
+        const invoice = await res.json();
+        
+        if (invoice.status !== 'FINANCING' || !invoice.additional_financing_amount) {
+            alert('❌ This invoice is not pending additional disbursement.');
+            return;
+        }
+        
+        const formatCurrency = (amount) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+        
+        const confirmMessage = `💰 Confirm Additional Disbursement\n\n` +
+            `Invoice: #${invoice.invoice_number || invoice.id}\n` +
+            `Previous Amount: ${formatCurrency(invoice.previous_amount)}\n` +
+            `New Amount: ${formatCurrency(invoice.increased_amount)}\n\n` +
+            `🏦 Additional to Disburse: ${formatCurrency(invoice.additional_financing_amount)}\n\n` +
+            `Have you completed the disbursement to SME?`;
+        
+        if (!confirm(confirmMessage)) {
+            return;
+        }
+        
+        // Call backend to confirm disbursement
+        const confirmRes = await fetch(`${API_URL}/api/invoices/${invoiceId}/confirm-additional-disbursement`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                disbursed_amount: invoice.additional_financing_amount,
+                comments: 'Bank confirmed additional disbursement for increased amount'
+            })
+        });
+        
+        if (!confirmRes.ok) {
+            const error = await confirmRes.json();
+            throw new Error(error.detail || 'Failed to confirm disbursement');
+        }
+        
+        const result = await confirmRes.json();
+        
+        alert(`✅ Additional Disbursement Confirmed!\n\n` +
+              `Amount: ${formatCurrency(invoice.additional_financing_amount)}\n` +
+              `Status: ${result.new_status}\n\n` +
+              `The invoice has been updated to FINANCED status.`);
+        
+        loadInvoices();
+        loadStats();
+        
+    } catch (error) {
+        console.error('Error confirming disbursement:', error);
+        alert('❌ Failed to confirm disbursement:\n\n' + error.message);
+    }
+}
+

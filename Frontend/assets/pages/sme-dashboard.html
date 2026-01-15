@@ -243,10 +243,10 @@
                     <div class="pro-card-elevated mt-10">
                     <div class="invoice-table-header px-10 py-4 flex items-center text-sm font-semibold text-gray-600">
                         <div class="text-left" style="width: 140px;" data-i18n="invoice.invoice">Invoice</div>
-                        <div class="text-left" style="width: 200px;" data-i18n="invoice.buyer">Buyer</div>
-                        <div class="text-center" style="width: 140px;" data-i18n="invoice.amount">Amount</div>
-                        <div class="text-center" style="width: 140px;" data-i18n="invoice.status">Status</div>
-                        <div class="text-center" style="width: 120px;" data-i18n="invoice.nftStatus">NFT Status</div>
+                        <div class="text-left" style="width: 340px;" data-i18n="invoice.buyer">Buyer</div>
+                        <div class="text-center" style="width: 160px;" data-i18n="invoice.amount">Amount</div>
+                        <div class="text-center" style="width: 260px;" data-i18n="invoice.status">Status</div>
+                        <div class="text-center" style="width: 220px;" data-i18n="invoice.nftStatus">NFT Status</div>
                         <div class="text-center" style="width: 140px;" data-i18n="invoice.created">Created</div>
                         <div class="text-center flex-1" data-i18n="invoice.action">Action</div>
                     </div>
@@ -1269,6 +1269,15 @@
             <!-- API + Auth Guard + Dashboard scripts -->
             <script src="../js/api.js"></script>
             <script src="../js/auth-guard.js"></script>
+            <script>
+                // Protect this page - require authentication (run after page loads)
+                window.addEventListener('DOMContentLoaded', function() {
+                    console.log("📄 SME dashboard loaded - checking auth...");
+                    if (typeof requireAuth === 'function') {
+                        requireAuth();
+                    }
+                });
+            </script>
             <script src="../js/dashboard.js"></script>
             <script src="../js/create-invoice.js"></script>
             <script src="../js/dispute.js"></script>

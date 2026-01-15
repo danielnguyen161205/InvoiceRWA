@@ -37,7 +37,9 @@ async function register(event) {
   }
 
   const data = await res.json();
-  // Store token and redirect to profile page
+  
+  // Store token in both storages for reliability
+  sessionStorage.setItem('token', data.access_token);
   localStorage.setItem('token', data.access_token);
   
   let message = 'Registration successful! ';
@@ -47,8 +49,17 @@ async function register(event) {
     message += 'Please complete KYC (Know Your Customer) verification in your profile to continue.';
   }
   
-  alert(message);
-  window.location.href = '/pages/profile.html';
+  if (window.notification) {
+    window.notification.success(message);
+  } else {
+    alert(message);
+  }
+  
+  // Small delay before redirect
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  // Redirect to profile page for KYC/KYB
+  window.location.replace('./profile.html');
 }
 
 document.addEventListener('DOMContentLoaded', () => {

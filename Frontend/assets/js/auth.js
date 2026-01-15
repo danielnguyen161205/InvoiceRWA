@@ -44,8 +44,11 @@ async function login() {
 
     const data = await res.json();
 
-    // 1️⃣ Store JWT in sessionStorage (more secure than localStorage)
+    // 1️⃣ Store JWT in BOTH sessionStorage AND localStorage for reliability
     sessionStorage.setItem("token", data.access_token);
+    localStorage.setItem("token", data.access_token);
+    console.log("✅ Token stored in sessionStorage:", sessionStorage.getItem("token") ? "YES" : "NO");
+    console.log("✅ Token stored in localStorage:", localStorage.getItem("token") ? "YES" : "NO");
 
     // Store refresh token if provided
     if (data.refresh_token) {
@@ -58,14 +61,22 @@ async function login() {
     const kycVerified = payload.kyc_verified || false;
     const orgStatus = payload.org_status;
 
+    console.log("👤 User roles:", roles);
+    console.log("✅ KYC verified:", kycVerified);
+
     // 3️⃣ Show success message
     if (window.notification) {
       window.notification.success("Đăng nhập thành công!");
     }
 
+    // Small delay to ensure token is saved before redirect
+    await new Promise(resolve => setTimeout(resolve, 100));
+
     // 4️⃣ Admin users go directly to admin dashboard (no KYC required)
     if (roles.includes("ADMIN")) {
-      window.location.href = "./admin-dashboard.html";
+      console.log("🔄 Redirecting to admin dashboard...");
+      // Use replace to prevent back button issues
+      window.location.replace("./admin-dashboard.html");
       return;
     }
 

@@ -1,5 +1,5 @@
-// Check authentication and KYC status on page load
-requireAuth();
+// Authentication is handled by auth-guard.js loaded in HTML
+// No need to call requireAuth() here as it's called after DOM loads
 
 // Format VND currency
 function formatVND(amount) {
@@ -76,12 +76,15 @@ async function manualRefresh() {
 }
 
 async function loadDashboard() {
-  const invoices = await apiFetch("/api/invoices");
+  try {
+    console.log('🔄 Loading dashboard...');
+    const invoices = await apiFetch("/api/invoices");
+    console.log('✅ Invoices fetched:', invoices.length);
 
-  // read filters
-  const startVal = document.getElementById('startdate') ? document.getElementById('startdate').value : null;
-  const endVal = document.getElementById('enddate') ? document.getElementById('enddate').value : null;
-  const statusVal = document.getElementById('status') ? document.getElementById('status').value : null;
+    // read filters
+    const startVal = document.getElementById('startdate') ? document.getElementById('startdate').value : null;
+    const endVal = document.getElementById('enddate') ? document.getElementById('enddate').value : null;
+    const statusVal = document.getElementById('status') ? document.getElementById('status').value : null;
 
   // filter invoices according to UI
   const filtered = invoices.filter(inv => {
@@ -104,7 +107,7 @@ async function loadDashboard() {
 
   // Get current user ID from token to determine which invoices belong to SME vs Buyer view
   let currentUserId = null;
-  const token = localStorage.getItem("token");
+  const token = sessionStorage.getItem("token") || localStorage.getItem("token");
   if (token) {
     try {
       const payload = JSON.parse(atob(token.split(".")[1]));
@@ -155,6 +158,29 @@ async function loadDashboard() {
   
   // Update last refresh time
   updateLastRefreshTime();
+  } catch (error) {
+    console.error('❌ Error loading dashboard:', error);
+    
+    // Show user-friendly error message
+    const smeTable = document.getElementById("sme-invoice-table");
+    const buyerTable = document.getElementById("buyer-invoice-table");
+    
+    const errorMessage = `
+      <div class="invoice-table-row bg-red-50 flex items-center px-10 py-6 text-center">
+        <div class="flex-1 text-red-600">
+          <i class="ri-error-warning-line text-2xl"></i>
+          <p class="mt-2">Không thể tải dữ liệu hóa đơn</p>
+          <p class="text-sm mt-1">${error.message}</p>
+          <button onclick="loadDashboard()" class="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+            Thử lại
+          </button>
+        </div>
+      </div>
+    `;
+    
+    if (smeTable) smeTable.innerHTML = errorMessage;
+    if (buyerTable) buyerTable.innerHTML = errorMessage;
+  }
 }
 
 function renderInvoiceTable(invoices, role) {
@@ -165,9 +191,35 @@ function renderInvoiceTable(invoices, role) {
   const fundedId = role === "sme" ? `fundedAmount-${role}` : `paidAmount-${role}`;
 
   const table = document.getElementById(tableId);
-  if (!table) return;
+  if (!table) {
+    console.warn(`⚠️ Table element not found: ${tableId}`);
+    return;
+  }
 
+  console.log(`📋 Rendering ${role} table with ${invoices.length} invoices`);
   table.innerHTML = "";
+
+  // Show message if no invoices
+  if (invoices.length === 0) {
+    table.innerHTML = `
+      <div class="invoice-table-row bg-gray-50 flex items-center px-10 py-6 text-center">
+        <div class="flex-1 text-gray-500">
+          <i class="ri-inbox-line text-3xl"></i>
+          <p class="mt-2">Không có hóa đơn nào</p>
+          <p class="text-sm mt-1">${role === 'sme' ? 'Bạn chưa tạo hóa đơn nào' : 'Không có hóa đơn cần thanh toán'}</p>
+        </div>
+      </div>
+    `;
+    
+    // Update counters to 0
+    const totalEl = document.getElementById(totalId);
+    const amountEl = document.getElementById(amountId);
+    const fundedEl = document.getElementById(fundedId);
+    if (totalEl) totalEl.innerText = '0';
+    if (amountEl) amountEl.innerText = formatVND(0);
+    if (fundedEl) fundedEl.innerText = formatVND(0);
+    return;
+  }
 
   let total = 0;
   let funded = 0;
@@ -197,6 +249,21 @@ function renderInvoiceTable(invoices, role) {
     // Add "Close Invoice" button for SME if invoice is FINANCED and not yet closed
     if (role === "sme" && inv.status === "FINANCED" && !inv.invoice_closed_by_sme) {
       action += ` | <a href="#" onclick="closeInvoiceWithFee(${inv.id}); return false;" class="text-purple-600 hover:underline cursor-pointer font-semibold">Đóng hóa đơn</a>`;
+    }
+    
+    // Add "Mark as Paid" button for BUYER if invoice is FINANCED and not yet marked as SETTLED
+    if (role === "buyer" && inv.status === "FINANCED") {
+      action += ` | <a href="#" onclick="markAsPaid(${inv.id}); return false;" class="text-green-600 hover:underline cursor-pointer font-semibold">✓ Mark as Paid</a>`;
+    }
+    
+    // Show "Paid" status for buyer if invoice is SETTLED or CLOSED
+    if (role === "buyer" && (inv.status === "SETTLED" || inv.status === "CLOSED")) {
+      action += ` | <span class="text-green-600 font-semibold">✓ Đã thanh toán</span>`;
+    }
+    
+    // Add "Dispute" button for BUYER if invoice is APPROVED or FINANCED
+    if (role === "buyer" && (inv.status === "APPROVED" || inv.status === "FINANCED")) {
+      action += ` | <a href="#" onclick="openDisputeModalForInvoice(${inv.id}); return false;" class="text-red-600 hover:underline cursor-pointer font-semibold">⚠ Dispute</a>`;
     }
     
     // Show closing fee status if invoice is closed
@@ -279,7 +346,17 @@ setupDateValidation();
   if (el) el.addEventListener('change', () => loadDashboard());
 });
 
-loadDashboard();
+// Wait for DOM to be fully loaded before loading dashboard
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    console.log('📄 DOM loaded, initializing dashboard...');
+    loadDashboard();
+  });
+} else {
+  // DOM already loaded
+  console.log('📄 DOM already loaded, initializing dashboard immediately...');
+  loadDashboard();
+}
 
 // Auto-refresh invoices every 30 seconds to show new invoices in real-time
 let autoRefreshInterval = setInterval(() => {
@@ -707,6 +784,11 @@ async function mintInvoiceNFT() {
 // Load buyer user information
 async function loadBuyerUserInfo(buyerId) {
   try {
+    if (!buyerId) {
+      console.warn('No buyer ID provided');
+      return;
+    }
+    
     const response = await fetch(`${API_URL}/api/users/${buyerId}`, {
       method: 'GET',
       headers: {
@@ -727,6 +809,13 @@ async function loadBuyerUserInfo(buyerId) {
         buyerUserName.textContent = userInfo.name || userInfo.username || 'N/A';
         buyerEmail.textContent = userInfo.email || 'N/A';
         buyerUserSection.style.display = 'flex';
+      }
+    } else {
+      console.warn(`Buyer user ${buyerId} not found or unauthorized`);
+      // Hide buyer user section if user not found
+      const buyerUserSection = document.getElementById('detailBuyerUser');
+      if (buyerUserSection) {
+        buyerUserSection.style.display = 'none';
       }
     }
   } catch (error) {
@@ -914,4 +1003,71 @@ function clearHighlights() {
     el.style.backgroundColor = '';
     el.style.borderLeft = '';
   });
+}
+
+// Mark invoice as paid by buyer
+async function markAsPaid(invoiceId) {
+  if (!confirm('⚠️ Xác nhận đã thanh toán hóa đơn này?\n\nHành động này sẽ thông báo cho bank rằng bạn đã trả tiền cho SME.')) {
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/invoices/${invoiceId}/mark-paid`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Failed to mark invoice as paid');
+    }
+
+    const result = await response.json();
+    alert(`✅ Đã đánh dấu hóa đơn là đã thanh toán!\n\nStatus: ${result.status}\n\nBank sẽ được thông báo để xác nhận.`);
+    
+    // Refresh dashboard
+    if (typeof loadDashboard === 'function') {
+      loadDashboard();
+    }
+  } catch (error) {
+    console.error('Error marking as paid:', error);
+    alert('❌ Lỗi: ' + error.message);
+  }
+}
+
+// Open dispute modal for specific invoice
+async function openDisputeModalForInvoice(invoiceId) {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/invoices/${invoiceId}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to load invoice');
+    }
+
+    const invoice = await response.json();
+    
+    // Set current invoice for dispute modal
+    if (typeof currentDisputeInvoice !== 'undefined') {
+      currentDisputeInvoice = invoice;
+    }
+    
+    // Call openDisputeModal if it exists
+    if (typeof openDisputeModal === 'function') {
+      openDisputeModal();
+    } else {
+      alert('Dispute feature is loading...');
+    }
+  } catch (error) {
+    console.error('Error opening dispute modal:', error);
+    alert('❌ Lỗi: ' + error.message);
+  }
 }

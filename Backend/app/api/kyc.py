@@ -218,7 +218,7 @@ def remove_org_wallet_alt(
 
 
 @router.get("/organizations/buyers", response_model=List[OrganizationOut])
-def get_approved_buyers(db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
+def get_approved_buyers(db: Session = Depends(get_db)):
     """Get list of KYC-verified organizations (SME/BUYER roles) that can be selected as buyers"""
     from app.models.user import User
     

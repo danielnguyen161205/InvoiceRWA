@@ -63,6 +63,13 @@ class Invoice(Base):
     dispute_description = Column(Text, nullable=True)  # Detailed description
     dispute_resolved = Column(Boolean, default=False)
     dispute_resolved_at = Column(DateTime, nullable=True)
+    dispute_resolution_action = Column(String(50), nullable=True)  # ACCEPT_INCREASED, REJECT_INCREASED
+    
+    # Dispute increased amount tracking (for POST_FINANCE disputes)
+    previous_amount = Column(Float, nullable=True)  # Original financed amount
+    increased_amount = Column(Float, nullable=True)  # New disputed amount (higher)
+    additional_financing_amount = Column(Float, nullable=True)  # Difference to be paid
+    linked_invoice_id = Column(Integer, nullable=True)  # Link to resubmitted invoice if rejected
     
     # Change request tracking (for EDITING status)
     change_request = Column(Text, nullable=True)

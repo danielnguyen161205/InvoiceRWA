@@ -36,16 +36,27 @@ function isTokenExpired(token) {
   if (!token) return true;
 
   const payload = decodeToken(token);
-  if (!payload || !payload.exp) return true;
+  if (!payload) return true;
+  
+  // If no exp field, token never expires (for development)
+  if (!payload.exp) {
+    console.log("⚠️ Token has no expiration time - treating as valid");
+    return false;
+  }
 
   const now = Date.now() / 1000;
-  return payload.exp < now;
+  const expired = payload.exp < now;
+  console.log(`⏰ Token exp: ${payload.exp}, Now: ${now}, Expired: ${expired}`);
+  return expired;
 }
 
 /**
  * Logout and redirect to login
  */
 function logout() {
+  console.log("🚪 logout() called - clearing tokens");
+  console.trace("Logout called from:");
+  
   sessionStorage.removeItem("token");
   localStorage.removeItem("token");
   localStorage.removeItem("refreshToken");
@@ -55,7 +66,8 @@ function logout() {
     window.notification.info("Phiên đăng nhập đã hết hạn");
   }
 
-  window.location.href = "/pages/login.html";
+  console.log("🔄 Redirecting to login...");
+  window.location.href = "./login.html";
 }
 
 /**
@@ -64,16 +76,27 @@ function logout() {
  * Redirects to profile if KYC not completed (except ADMIN)
  */
 function requireAuth() {
-  // Get token from sessionStorage first (more secure), then localStorage
+  console.log("🔒 requireAuth() called");
+  console.log("📍 Current page:", window.location.pathname);
+  console.log("🕐 Timestamp:", new Date().toISOString());
+  
+  // Get token from sessionStorage first (more secure), then localStorage  
   const token = getToken();
+  console.log("🎫 Token found:", token ? "YES" : "NO");
+  
+  if (token) {
+    console.log("🎫 Token preview:", token.substring(0, 50) + "...");
+  }
 
   if (!token) {
+    console.log("❌ No token found - redirecting to login");
     logout();
     return false;
   }
 
   // Check token expiration
   if (isTokenExpired(token)) {
+    console.log("❌ Token expired - redirecting to login");
     logout();
     return false;
   }
@@ -81,9 +104,12 @@ function requireAuth() {
   // Decode token to get user info
   const payload = decodeToken(token);
   if (!payload) {
+    console.log("❌ Cannot decode token - redirecting to login");
     logout();
     return false;
   }
+
+  console.log("✅ Token valid - User:", payload.email, "Roles:", payload.roles);
 
   // Check KYC verification status for all users except ADMIN
   const roles = payload.roles || (payload.role ? [payload.role] : []);
@@ -92,23 +118,27 @@ function requireAuth() {
 
   // Allow ADMIN to access any page without KYC
   if (roles.includes("ADMIN")) {
+    console.log("👑 Admin user - access granted");
     return true;
   }
 
   // Allow profile page access for everyone (so they can complete KYC/KYB)
   if (currentPage.includes('/profile.html')) {
+    console.log("📄 Profile page - access granted");
     return true;
   }
 
   // If not verified and trying to access dashboard, redirect to profile
   if (!kycVerified) {
+    console.log("⚠️ KYC not verified - redirecting to profile");
     if (window.notification) {
       window.notification.info("Vui lòng hoàn thành xác thực KYC trước khi tiếp tục");
     }
-    window.location.href = "/pages/profile.html";
+    window.location.href = "./profile.html";
     return false;
   }
 
+  console.log("✅ All checks passed - access granted");
   return true;
 }
 

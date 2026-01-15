@@ -5,24 +5,9 @@ from app.models.invoice import Invoice
 from app.schemas.invoice import InvoiceCreate, InvoiceOut, InvoiceUpdate
 from app.core.security import get_current_user
 from pydantic import BaseModel
+from typing import Optional
 import datetime
 import hashlib
-
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-
-app = FastAPI()
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://127.0.0.1:5500",
-        "http://localhost:5500",
-    ],
-    allow_credentials=True,   # keep True if you use cookies/auth; safe for JWT header too
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 router = APIRouter(prefix="/invoices", tags=["Invoices"])
 
@@ -1208,4 +1193,217 @@ async def upload_dispute_evidence(
         "invoice_id": invoice_id,
         "case_id": invoice.dispute_case_id,
         "files_count": len(files) if files else 0
+    }
+
+
+# BANK: RESOLVE DISPUTE (For FINANCED invoices with increased amount)
+class DisputeResolutionData(BaseModel):
+    action: str  # ACCEPT_INCREASED or REJECT_INCREASED
+    comments: str = None
+    new_amount: float = None  # Required if action is ACCEPT_INCREASED
+
+@router.post("/{invoice_id}/dispute/resolve")
+def resolve_dispute(
+    invoice_id: int,
+    resolution_data: DisputeResolutionData,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user)
+):
+    """
+    Bank admin resolves dispute for FINANCED invoice with increased amount.
+    
+    ACCEPT_INCREASED: Bank accepts the increased amount, continues financing
+                      - Status: DISPUTED -> FINANCING
+                      - Bank will disburse additional_financing_amount to SME
+    
+    REJECT_INCREASED: Bank rejects, requires SME/Buyer to resubmit new invoice
+                      - Status: DISPUTED -> SUBMITTED (for resubmission)
+                      - Creates link to allow new invoice submission
+    """
+    roles = user.get("roles") or ([user.get("role")] if user.get("role") else [])
+    user_id = int(user["sub"])
+    
+    # Only bank admins can resolve disputes
+    if "BANK" not in roles and "ADMIN" not in roles:
+        raise HTTPException(status_code=403, detail="Only bank admins can resolve disputes")
+    
+    # Get invoice
+    invoice = db.query(Invoice).filter(Invoice.id == invoice_id).first()
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    
+    # Check if invoice is disputed
+    if invoice.status != "DISPUTED":
+        raise HTTPException(status_code=400, detail="Invoice must be in DISPUTED status")
+    
+    # Check dispute type
+    if invoice.dispute_type != "POST_FINANCE":
+        raise HTTPException(
+            status_code=400, 
+            detail="This endpoint is only for POST_FINANCE disputes (FINANCED invoices with increased amount)"
+        )
+    
+    # Validate action
+    if resolution_data.action not in ["ACCEPT_INCREASED", "REJECT_INCREASED"]:
+        raise HTTPException(
+            status_code=400, 
+            detail="Action must be ACCEPT_INCREASED or REJECT_INCREASED"
+        )
+    
+    if resolution_data.action == "ACCEPT_INCREASED":
+        # Bank accepts the increased amount
+        if not resolution_data.new_amount:
+            raise HTTPException(status_code=400, detail="new_amount is required for ACCEPT_INCREASED")
+        
+        if resolution_data.new_amount <= invoice.amount:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"New amount ({resolution_data.new_amount}) must be greater than original amount ({invoice.amount})"
+            )
+        
+        # Calculate additional financing needed
+        invoice.previous_amount = invoice.amount
+        invoice.increased_amount = resolution_data.new_amount
+        invoice.additional_financing_amount = resolution_data.new_amount - invoice.amount
+        
+        # Update invoice amount to new amount
+        invoice.amount = resolution_data.new_amount
+        
+        # Change status back to FINANCING for additional disbursement
+        invoice.status = "FINANCING"
+        invoice.dispute_resolved = True
+        invoice.dispute_resolved_at = datetime.datetime.utcnow()
+        invoice.dispute_resolution_action = "ACCEPT_INCREASED"
+        
+        # Log the resolution
+        from app.models.audit import AuditLog
+        audit_log = AuditLog(
+            target_type='INVOICE',
+            target_id=str(invoice_id),
+            action='DISPUTE_RESOLVED_ACCEPT',
+            actor_sub=str(user_id),
+            actor_roles=','.join(roles),
+            comments=f"Bank accepted increased amount. Previous: {invoice.previous_amount}, New: {invoice.increased_amount}, Additional: {invoice.additional_financing_amount}. Comments: {resolution_data.comments or 'N/A'}"
+        )
+        db.add(audit_log)
+        
+        db.commit()
+        db.refresh(invoice)
+        
+        return {
+            "message": "Dispute resolved - Bank accepted increased amount",
+            "invoice_id": invoice_id,
+            "action": "ACCEPT_INCREASED",
+            "new_status": "FINANCING",
+            "previous_amount": invoice.previous_amount,
+            "increased_amount": invoice.increased_amount,
+            "additional_financing_amount": invoice.additional_financing_amount,
+            "case_id": invoice.dispute_case_id
+        }
+    
+    elif resolution_data.action == "REJECT_INCREASED":
+        # Bank rejects - requires resubmission with new invoice linked to old one
+        invoice.status = "SUBMITTED"  # Back to SUBMITTED for SME/Buyer to create new invoice
+        invoice.dispute_resolved = True
+        invoice.dispute_resolved_at = datetime.datetime.utcnow()
+        invoice.dispute_resolution_action = "REJECT_INCREASED"
+        
+        # Log the resolution
+        from app.models.audit import AuditLog
+        audit_log = AuditLog(
+            target_type='INVOICE',
+            target_id=str(invoice_id),
+            action='DISPUTE_RESOLVED_REJECT',
+            actor_sub=str(user_id),
+            actor_roles=','.join(roles),
+            comments=f"Bank rejected increased amount. Requires resubmission. Comments: {resolution_data.comments or 'N/A'}"
+        )
+        db.add(audit_log)
+        
+        db.commit()
+        db.refresh(invoice)
+        
+        return {
+            "message": "Dispute resolved - Bank rejected. SME/Buyer must create new invoice and link to this one",
+            "invoice_id": invoice_id,
+            "action": "REJECT_INCREASED",
+            "new_status": "SUBMITTED",
+            "case_id": invoice.dispute_case_id,
+            "instructions": "Create a new invoice and set linked_invoice_id to this invoice ID"
+        }
+
+
+# Confirm additional disbursement after accepting increased amount
+class ConfirmDisbursementData(BaseModel):
+    disbursed_amount: float
+    comments: Optional[str] = None
+
+@router.post("/{invoice_id}/confirm-additional-disbursement")
+def confirm_additional_disbursement(
+    invoice_id: int,
+    data: ConfirmDisbursementData,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user)
+):
+    """
+    Bank confirms that additional financing amount has been disbursed to SME.
+    This is called after bank accepts increased amount (ACCEPT_INCREASED).
+    Changes status: FINANCING -> FINANCED
+    """
+    roles = user.get("roles") or ([user.get("role")] if user.get("role") else [])
+    user_id = int(user["sub"])
+    
+    # Only bank admins can confirm disbursement
+    if "BANK" not in roles and "ADMIN" not in roles:
+        raise HTTPException(status_code=403, detail="Only bank admins can confirm disbursement")
+    
+    # Get invoice
+    invoice = db.query(Invoice).filter(Invoice.id == invoice_id).first()
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    
+    # Check if invoice is in FINANCING status
+    if invoice.status != "FINANCING":
+        raise HTTPException(status_code=400, detail="Invoice must be in FINANCING status")
+    
+    # Check if this is an accepted increased amount dispute
+    if invoice.dispute_resolution_action != "ACCEPT_INCREASED":
+        raise HTTPException(
+            status_code=400, 
+            detail="This endpoint is only for invoices with accepted increased amounts"
+        )
+    
+    # Verify disbursed amount matches additional financing amount
+    if abs(data.disbursed_amount - invoice.additional_financing_amount) > 0.01:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Disbursed amount ({data.disbursed_amount}) must match additional financing amount ({invoice.additional_financing_amount})"
+        )
+    
+    # Update invoice status back to FINANCED
+    invoice.status = "FINANCED"
+    invoice.financed_at = datetime.datetime.utcnow()
+    
+    # Log the disbursement
+    from app.models.audit import AuditLog
+    audit_log = AuditLog(
+        target_type='INVOICE',
+        target_id=str(invoice_id),
+        action='ADDITIONAL_DISBURSEMENT_CONFIRMED',
+        actor_sub=str(user_id),
+        actor_roles=','.join(roles),
+        comments=f"Bank confirmed additional disbursement of {data.disbursed_amount}. Comments: {data.comments or 'N/A'}"
+    )
+    db.add(audit_log)
+    
+    db.commit()
+    db.refresh(invoice)
+    
+    return {
+        "message": "Additional disbursement confirmed successfully",
+        "invoice_id": invoice_id,
+        "new_status": "FINANCED",
+        "total_amount": invoice.amount,
+        "additional_disbursed": data.disbursed_amount,
+        "previous_amount": invoice.previous_amount
     }

@@ -1,7 +1,7 @@
 """add invoice rejection fields
 
 Revision ID: 20260110_invoice_rejection
-Revises: 20260110_add_dispute_fields
+Revises: 580b17343089
 Create Date: 2026-01-10 14:00:00.000000
 
 """
@@ -11,7 +11,7 @@ from sqlalchemy.dialects import mysql
 
 # revision identifiers, used by Alembic.
 revision = '20260110_invoice_rejection'
-down_revision = '20260110_add_dispute_fields'
+down_revision = '580b17343089'
 branch_labels = None
 depends_on = None
 

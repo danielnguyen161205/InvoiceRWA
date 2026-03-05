@@ -187,7 +187,9 @@ Vui lòng đọc [CONTRIBUTING.md](CONTRIBUTING.md) để biết chi tiết về
 - GitHub: [@danielnguyen161205](https://github.com/danielnguyen161205)
 - Repository: https://github.com/danielnguyen161205/InvoiceRWA
 
-## 🔗 Links Hữu Ích
+## 🔗 VID DEMO
+
+https://www.youtube.com/watch?v=O1k2tpDrwwc&t=1s
 
 - [FastAPI Documentation](https://fastapi.tiangolo.com/)
 - [Hardhat Documentation](https://hardhat.org/docs)
